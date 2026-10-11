@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+# Serialize main releases to avoid racing the next semantic-version tag.
+concurrency:
+  group: ghcode-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'main-publish' || format('check-{0}-{1}', github.event_name, github.ref) }}
+  cancel-in-progress: false
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -22,3 +27,62 @@ jobs:
         run: bunx playwright install --with-deps chromium
       - name: Browser acceptance
         run: bun run acceptance
+
+  publish:
+    name: Release and package Pages
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      PUBLIC_GITHUB_OAUTH_CLIENT_ID: ${{ vars.WORKBENCH_OAUTH_CLIENT_ID }}
+      PUBLIC_GITHUB_AUTH_BROKER_URL: ${{ vars.WORKBENCH_AUTH_BROKER_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+      - name: Build standalone GHCode
+        run: |
+          bun install
+          bun run build
+          test -s dist/index.html
+      - name: Create GitHub release for this main commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist
+          zip -q -r ../ghcode-site.zip .
+          cd ..
+          # Every main push gets a release. Serializing runs avoids tag collisions.
+          PREVIOUS="$(gh release list --limit 100 --json tagName --jq '.[].tagName' | grep -E '^v[0-9]+\\.[0-9]+\\.[0-9]+$' | sort -V | tail -1 || true)"
+          if [[ -z "$PREVIOUS" ]]; then
+            TAG="v0.1.0"
+          else
+            IFS='.' read -r MAJOR MINOR PATCH <<< "${PREVIOUS#v}"
+            TAG="v${MAJOR}.${MINOR}.$((PATCH + 1))"
+          fi
+          gh release create "$TAG" ghcode-site.zip --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+          echo "Published $TAG from $GITHUB_SHA"
+      - uses: actions/configure-pages@v5
+      - name: Upload GHCode site as a Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy Pages from Actions artifact
+    needs: publish
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GHCode
+        id: deployment
+        uses: actions/deploy-pages@v4
