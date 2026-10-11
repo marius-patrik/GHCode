@@ -56,7 +56,7 @@ jobs:
           zip -q -r ../ghcode-site.zip .
           cd ..
           # Every main push gets a release. Serializing runs avoids tag collisions.
-          PREVIOUS="$(gh release list --limit 100 --json tagName --jq '.[].tagName' | grep -E '^v[0-9]+[.][0-9]+[.][0-9]+ | sort -V | tail -1 || true)"
+          PREVIOUS="$(gh release list --limit 100 --json tagName --jq '.[].tagName' | grep -E '^v[0-9]+[.][0-9]+[.][0-9]+$' | sort -V | tail -1 || true)"
           if [[ -z "$PREVIOUS" ]]; then
             TAG="v0.1.0"
           else
