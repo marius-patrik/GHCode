@@ -103,3 +103,30 @@ jobs:
       - name: Deploy GHCode
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify GitHub Pages source and public response
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          echo "GitHub Pages configuration:"
+          if gh api "repos/$GITHUB_REPOSITORY/pages" --jq '{build_type, status, html_url, source}'; then
+            build_type="$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq '.build_type')"
+            if [[ "$build_type" != "workflow" ]]; then
+              echo "::error::Pages is still configured for branch publishing ($build_type). Change Settings > Pages > Build and deployment > Source to GitHub Actions."
+              exit 1
+            fi
+          else
+            echo "::warning::Unable to read Pages settings with GITHUB_TOKEN."
+          fi
+          for attempt in {1..9}; do
+            code="$(curl -sSL -o /tmp/ghcode-public-index -w '%{http_code}' --max-time 25 "$PAGE_URL" || true)"
+            echo "Public Pages HTTP status (attempt $attempt): $code"
+            if [[ "$code" == "200" ]] && grep -qi '<html' /tmp/ghcode-public-index; then
+              echo "GHCode is publicly readable at $PAGE_URL"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Deployment API succeeded, but the public GHCode homepage is not returning HTML over HTTP 200 at $PAGE_URL"
+          exit 1
