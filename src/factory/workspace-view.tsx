@@ -11,7 +11,7 @@ import {
   Send,
 } from "lucide-react";
 import { AnimatedIcon } from "@/components/animated-icon";
-import { useFactory } from "@/factory/context";
+import { useFactory, type FactoryConcern } from "@/factory/context";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -40,7 +40,7 @@ function Status({ children, tone }: { children: string; tone?: "good" | "warn" |
   return <span className={`factory-status ${tone ?? ""}`}>{children}</span>;
 }
 
-export function FactoryWorkspaceView() {
+export function FactoryWorkspaceView({ concern }: { concern: FactoryConcern }) {
   const workspace = useWorkspace();
   const factory = useFactory();
   const runtime = useWorkbenchRuntime();
@@ -58,7 +58,6 @@ export function FactoryWorkspaceView() {
     validation,
     selectedPath,
   } = factory;
-  const concern = factory.concern;
   const [search, setSearch] = useState("");
   const [registry, setRegistry] = useState("requirements");
   const [selectedRecord, setSelectedRecord] = useState("");
