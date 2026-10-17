@@ -59,7 +59,7 @@ export function desiredPaths(contract: Contract | null): FileEvidence[] {
   return registryRecords(contract, "files").flatMap((record) => {
     if (typeof record.path !== "string") return [];
     const path = normalizePath(record.path);
-    if (!path || path.includes("..") || path.includes("\u0000")) return [];
+    if (!path || path.split("/").includes("..") || path.includes("\u0000")) return [];
     return [{
       path,
       type: record.kind === "dir" || record.kind === "directory" ? "dir" as const : "file" as const,
