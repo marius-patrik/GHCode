@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
-  BookOpen, CircleAlert, Diff, Download, ExternalLink, File,
-  FileCode2, FileText, FolderTree, GitBranch, LayoutDashboard, Plus,
+  BookOpen, CircleAlert, Download, ExternalLink,
+  FileCode2, FileText, FolderTree, Plus,
   RefreshCw, Search, Send, X,
 } from "lucide-react";
 import { AnimatedIcon } from "@/components/animated-icon";
+import { useFactory } from "@/factory/context";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { createGithubIssue } from "@/github/client";
@@ -14,46 +15,18 @@ import type { WorkbenchTab } from "@/workbench/model";
 import { useWorkspace } from "@/workspace/context";
 import { languageForPath } from "@/workspace/languages";
 import {
-  assembleIssueDrafts, calculateDiscrepancies, compileContract,
-  desiredPaths, parseContract, registryRecords, REGISTRIES,
-  validateContract, type Contract, type FileEvidence,
+  compileContract, parseContract, registryRecords, REGISTRIES,
 } from "@/factory/contracts";
 import "@/factory/factory.css";
 
-type Concern = "overview" | "specification" | "delta" | "repository";
 type Pane = "files" | "contracts" | "markdown" | "issues";
 
-const CONCERNS: Array<{ id: Concern; label: string; icon: typeof File }> = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "specification", label: "Specification", icon: BookOpen },
-  { id: "delta", label: "Delta", icon: Diff },
-  { id: "repository", label: "Repository", icon: GitBranch },
-];
 const PANES: Array<{ id: Pane; label: string }> = [
   { id: "files", label: "Files" },
   { id: "contracts", label: "Contracts" },
   { id: "markdown", label: "Markdown" },
   { id: "issues", label: "Issues" },
 ];
-const DOCUMENT_LOCATIONS = {
-  desired: ["PRD.md", "docs/PRD.md", ".agents/PRD.md"],
-  reported: ["ARCHITECTURE.md", "docs/ARCHITECTURE.md", ".agents/ARCHITECTURE.md"],
-};
-
-type LoadedDocument = {
-  path: string;
-  raw: string;
-  contract: Contract | null;
-  error: string | null;
-};
-
-function decodeDocument(path: string, raw: string): LoadedDocument {
-  try {
-    return { path, raw, contract: parseContract(raw).contract, error: null };
-  } catch (error) {
-    return { path, raw, contract: null, error: error instanceof Error ? error.message : String(error) };
-  }
-}
 
 function downloadMarkdown(name: string, contents: string) {
   const blob = new Blob([contents], { type: "text/markdown;charset=utf-8" });
@@ -63,27 +36,6 @@ function downloadMarkdown(name: string, contents: string) {
   link.download = name;
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
-function makeObservedFiles(
-  tree: Array<{ path: string; type: string }>,
-  overlays: Array<{ path: string; status: string }>,
-  committed: Array<{ path: string; deleted: boolean }>,
-): FileEvidence[] {
-  const files = new Map<string, FileEvidence>();
-  for (const item of tree) {
-    if (item.type === "blob") files.set(item.path, { path: item.path, type: "file" });
-    if (item.type === "tree") files.set(item.path, { path: item.path, type: "dir" });
-  }
-  for (const item of committed) {
-    if (item.deleted) files.delete(item.path);
-    else files.set(item.path, { path: item.path, type: "file" });
-  }
-  for (const item of overlays) {
-    if (item.status === "deleted") files.delete(item.path);
-    else files.set(item.path, { path: item.path, type: "file" });
-  }
-  return [...files.values()].sort((a, b) => a.path.localeCompare(b.path));
 }
 
 function Status({ children, tone }: { children: string; tone?: "good" | "warn" | "bad" }) {
@@ -98,95 +50,39 @@ export function FactoryTab({
   updateState: (patch: Record<string, unknown>) => void;
 }) {
   const workspace = useWorkspace();
+  const factory = useFactory();
   const runtime = useWorkbenchRuntime();
   const reducedMotion = useReducedMotion();
   const currentRepo = workspace.workspace;
-  const [desired, setDesired] = useState<LoadedDocument | null>(null);
-  const [reported, setReported] = useState<LoadedDocument | null>(null);
-  const [reading, setReading] = useState(false);
-  const [readError, setReadError] = useState("");
+  const { desired, reported, loading: reading, error: readError, desiredFiles: declaredFiles, actualFiles: observedFiles, changes: delta, drafts, validation, selectedPath, selectPath } = factory;
+  const concern = factory.concern;
   const [search, setSearch] = useState("");
-  const [selectedFile, setSelectedFile] = useState("");
-  const [registry, setRegistry] = useState<string>("requirements");
-  const [selectedRecord, setSelectedRecord] = useState<string>("");
+  const [registry, setRegistry] = useState("requirements");
+  const [selectedRecord, setSelectedRecord] = useState("");
   const [editedIssueBodies, setEditedIssueBodies] = useState<Record<string, string>>({});
   const [published, setPublished] = useState<Record<string, number>>({});
   const [publishing, setPublishing] = useState<string | null>(null);
   const [dispatchError, setDispatchError] = useState("");
-  const concern: Concern = CONCERNS.some((item) => item.id === tab.state.concern)
-    ? tab.state.concern as Concern : "specification";
   const pane: Pane = PANES.some((item) => item.id === tab.state.pane)
     ? tab.state.pane as Pane : "files";
-  const changeConcern = (value: Concern) => updateState({ concern: value });
+  const changeConcern = factory.setConcern;
   const changePane = (value: Pane) => updateState({ pane: value });
 
-  const observedFiles = useMemo(
-    () => makeObservedFiles(currentRepo?.tree ?? [], workspace.overlays, workspace.committedFiles),
-    [currentRepo, workspace.overlays, workspace.committedFiles],
-  );
-  const allPaths = useMemo(() => new Set(observedFiles.filter((f) => f.type === "file").map((f) => f.path)), [observedFiles]);
-
-  const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
-    setSelectedFile("");
-    setSelectedRecord("");
     setSearch("");
+    setSelectedRecord("");
     setPublished({});
     setEditedIssueBodies({});
     setDispatchError("");
   }, [currentRepo?.id]);
-  useEffect(() => {
-    let active = true;
-    setDesired(null);
-    setReported(null);
-    setReadError("");
-    if (!currentRepo) {
-      setReading(false);
-      return () => { active = false; };
-    }
-    setReading(true);
-    const load = async (candidates: string[]): Promise<LoadedDocument | null> => {
-      const path = candidates.find((candidate) => allPaths.has(candidate));
-      if (!path) return null;
-      const raw = await workspace.readFile(path);
-      return decodeDocument(path, raw);
-    };
-    void Promise.all([load(DOCUMENT_LOCATIONS.desired), load(DOCUMENT_LOCATIONS.reported)])
-      .then(([target, actual]) => {
-        if (!active) return;
-        setDesired(target);
-        setReported(actual);
-      })
-      .catch((error) => {
-        if (active) setReadError(error instanceof Error ? error.message : String(error));
-      })
-      .finally(() => {
-        if (active) setReading(false);
-      });
-    return () => { active = false; };
-  }, [currentRepo?.id, allPaths, workspace.readFile, reloadKey]);
 
   const target = desired?.contract ?? null;
-  const architecture = reported?.contract ?? null;
-  const declaredFiles = useMemo(() => desiredPaths(target), [target]);
-  const delta = useMemo(() => calculateDiscrepancies(target, architecture, observedFiles, Boolean(currentRepo)), [target, architecture, observedFiles, currentRepo]);
-  const drafts = useMemo(() => assembleIssueDrafts(delta), [delta]);
-  const validation = useMemo(() => target ? validateContract(target) : [], [target]);
   const selectedDoc = concern === "repository" ? reported : desired;
+  const selectedFile = selectedPath ?? "";
+  const fileList = concern === "specification" ? declaredFiles : concern === "delta"
+    ? delta.filter((item) => item.kind === "file" && item.path).map((item) => ({ path: item.path as string, type: "file" as const }))
+    : observedFiles;
 
-  const fileList = useMemo(() => {
-    if (concern === "specification") return declaredFiles;
-    if (concern === "repository") return observedFiles;
-    if (concern === "delta") {
-      return delta.filter((item) => item.kind === "file" && item.path)
-        .map((item) => ({ path: item.path as string, type: "file" as const }));
-    }
-    return observedFiles;
-  }, [concern, declaredFiles, observedFiles, delta]);
-  const filteredFiles = useMemo(
-    () => fileList.filter((item) => item.path.toLowerCase().includes(search.trim().toLowerCase())).slice(0, 450),
-    [fileList, search],
-  );
   const filteredRecords = registryRecords(selectedDoc?.contract ?? null, registry)
     .filter((record) => JSON.stringify(record).toLowerCase().includes(search.trim().toLowerCase()));
   const record = filteredRecords.find((item) => item.id === selectedRecord) ?? filteredRecords[0];
@@ -227,67 +123,48 @@ export function FactoryTab({
   };
 
   const filesView = (
-    <div className="factory-split">
-      <section className="factory-list-pane" aria-label={`${concern} files`}>
-        <header className="factory-pane-heading">
-          <FolderTree size={14} /> <strong>{concern === "specification" ? "Desired files" : concern === "repository" ? "Repository files" : "Changed paths"}</strong>
-          <span>{fileList.length}</span>
-        </header>
-        <div className="factory-file-list">
-          {filteredFiles.length === 0 && <p className="factory-empty">No file paths are available for this projection.</p>}
-          {filteredFiles.map((file) => (
-            <button
-              className={`factory-file-row ${selectedFile === file.path ? "selected" : ""}`}
-              type="button"
-              key={file.path}
-              onClick={() => setSelectedFile(file.path)}
-              title={file.path}
-            >
-              {file.type === "dir" ? <FolderTree size={14} /> : <File size={14} />}
-              <span>{file.path}</span>
-            </button>
-          ))}
-          {fileList.length > 450 && <p className="factory-caption">Showing up to 450 paths; filter by name to narrow the list.</p>}
-        </div>
-      </section>
-      <section className="factory-inspector" aria-label="Selected file">
-        {fileDetails ? (
-          <>
-            <div className="factory-inspector-head">
-              <FileCode2 size={17} />
-              <div className="factory-inspector-title"><strong>{selectedFile.split("/").at(-1)}</strong><span>{selectedFile}</span></div>
-              {fileDetails.actual?.type === "file" && (
-                <Button size="sm" variant="outline" onClick={() => openEditor(selectedFile)}>
-                  Open source <ExternalLink size={13} />
-                </Button>
-              )}
+    <section className="factory-inspector factory-file-inspector" aria-label="Selected file">
+      {fileDetails ? (
+        <>
+          <div className="factory-inspector-head">
+            <FileCode2 size={18}/>
+            <div className="factory-inspector-title">
+              <strong>{selectedFile.split("/").at(-1)}</strong>
+              <span>{selectedFile}</span>
             </div>
-            <dl className="factory-properties">
-              <dt>Desired</dt><dd>{fileDetails.declared ? fileDetails.declared.type : "Not declared"}</dd>
-              <dt>Observed</dt><dd>{fileDetails.actual ? fileDetails.actual.type : "Not found"}</dd>
-              <dt>Evidence</dt><dd>{fileDetails.changes.map((change) => change.status).join(", ") || "No confirmed discrepancy"}</dd>
-            </dl>
-            {fileDetails.changes.map((item) => (
-              <div className="factory-finding" key={item.id}>
-                <Status tone={item.status === "missing" ? "bad" : "warn"}>{item.status}</Status>
-                <p>{item.explanation}</p>
-              </div>
-            ))}
-            {fileDetails.declared?.content !== undefined && (
-              <>
-                <h3>Exact desired contents</h3>
-                <pre className="factory-code">{fileDetails.declared.content}</pre>
-              </>
+            {fileDetails.actual?.type === "file" && (
+              <Button variant="outline" size="sm" onClick={() => openEditor(selectedFile)}>
+                Open in Monaco <ExternalLink size={13}/>
+              </Button>
             )}
-            {fileDetails.actual && fileDetails.declared?.content !== undefined && (
-              <p className="factory-caption">Content equality remains unverified until the source is fetched. Path presence alone does not prove implementation.</p>
-            )}
-          </>
-        ) : (
-          <div className="factory-no-selection"><FileText size={24} /><strong>Select a file</strong><p>Inspect its declared state and its observed repository evidence.</p></div>
-        )}
-      </section>
-    </div>
+          </div>
+          <dl className="factory-properties">
+            <dt>Declared</dt><dd>{fileDetails.declared?.type ?? "Not declared"}</dd>
+            <dt>Observed</dt><dd>{fileDetails.actual?.type ?? "Not found in repository tree"}</dd>
+            <dt>Finding</dt><dd>{fileDetails.changes.map((change) => change.status).join(", ") || "No confirmed discrepancy"}</dd>
+          </dl>
+          {fileDetails.changes.map((finding) => (
+            <div key={finding.id} className="factory-finding">
+              <Status tone={finding.status === "missing" ? "bad" : "warn"}>{finding.status}</Status>
+              <p>{finding.explanation}</p>
+            </div>
+          ))}
+          {fileDetails.declared?.content !== undefined && (
+            <><h3>Exact desired content</h3><pre className="factory-code">{fileDetails.declared.content}</pre></>
+          )}
+          {fileDetails.declared?.content !== undefined && fileDetails.actual && (
+            <p className="factory-caption">Path presence does not prove source-content or behavioral compliance.</p>
+          )}
+        </>
+      ) : (
+        <div className="factory-no-selection">
+          <FolderTree size={24}/>
+          <strong>{concern === "specification" ? "Desired file tree" : concern === "delta" ? "File differences" : "Repository tree"}</strong>
+          <p>Select a file in the shared Explorer to inspect it here. The same Explorer switches data with the workspace perspective.</p>
+          <span className="factory-caption">{fileList.length} paths in this view</span>
+        </div>
+      )}
+    </section>
   );
 
   const contractsView = (
@@ -388,20 +265,12 @@ export function FactoryTab({
           {reading && <span className="factory-caption">Reading documents…</span>}
           <Tooltip>
             <TooltipTrigger asChild>
-              <button className="factory-icon-button" type="button" onClick={() => setReloadKey((key) => key + 1)} aria-label="Reload specification"><RefreshCw size={15}/></button>
+              <button className="factory-icon-button" type="button" onClick={factory.refresh} aria-label="Reload specification"><RefreshCw size={15}/></button>
             </TooltipTrigger>
             <TooltipContent>Reload project documents</TooltipContent>
           </Tooltip>
         </div>
       </header>
-      <nav className="factory-concerns" aria-label="Factory views">
-        {CONCERNS.map(({ id, label, icon: Icon }) => (
-          <button key={id} type="button" aria-current={concern === id ? "page" : undefined}
-            className={`factory-concern ${concern === id ? "active" : ""}`} onClick={() => changeConcern(id)}>
-            <Icon size={15}/> <span>{label}</span>
-          </button>
-        ))}
-      </nav>
       {readError && <div role="alert" className="factory-error"><CircleAlert size={14}/> {readError}</div>}
       {concern === "overview" ? (
         <div className="factory-overview">
