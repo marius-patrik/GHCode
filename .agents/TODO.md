@@ -1,3 +1,4 @@
+- Verify main Dockview tab bar persistence, four perspective tabs, native activation, restoration and drag/drop after switching sidebar tabs.
 # TODO
 
 - Exercise screenshot-based desktop/mobile flows in the deployed GitHub Pages PR preview.
