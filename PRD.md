@@ -70,6 +70,16 @@
       "id": "REQ-008",
       "title": "Source-controlled self-definition",
       "behavior": "GHCode factory itself is described by this actual PRD and ARCHITECTURE.md rather than embedded mock project data."
+    },
+    {
+      "id": "REQ-009",
+      "title": "Deployed PR previews",
+      "behavior": "Every same-repository PR builds a working review site, published as a read-only isolated URL, visible as GitHub deployment and linked from PR conversation; it must not touch production."
+    },
+    {
+      "id": "REQ-010",
+      "title": "Safe preview identity",
+      "behavior": "A preview on a third-party shared origin cannot load, persist, request or transmit GitHub tokens."
     }
   ],
   "components": [
@@ -217,6 +227,18 @@
       "kind": "file",
       "path": "rsbuild.config.ts",
       "purpose": "Production and standalone HTML compilation"
+    },
+    {
+      "id": "FIL-012",
+      "kind": "file",
+      "path": ".github/workflows/pr-preview.yml",
+      "purpose": "Per-PR preview validation, isolated deployment, URL reporting and cleanup"
+    },
+    {
+      "id": "FIL-013",
+      "kind": "file",
+      "path": "src/github/auth.ts",
+      "purpose": "Authentication safety guard on preview host"
     }
   ]
 }
@@ -233,4 +255,4 @@ The factory is a first-class GHCode workbench capability. Repository, Specificat
 - The selected repository ref, full Git tree and working overlays are read through GHCode's existing workspace provider.
 - Unreported requirements are not automatically classified as unimplemented.
 - Issue drafts remain reviewable and need explicit approval before publishing.
-- A standalone single-file HTML is built from the same source tree for review.
+- Every PR publishes an isolated review URL from the same RSBuild output; no HTML needs to be downloaded.
