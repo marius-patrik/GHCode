@@ -280,6 +280,7 @@ export function WorkbenchPanel({ props }: { props: any }) {
   return (
     <TabShell
       tab={tab}
+      hideToolbar={tab.type === "overview" || tab.type === "specification" || tab.type === "delta" || tab.type === "repository"}
       actions={{
         move: runtime.moveTab,
         split: runtime.splitTab,
