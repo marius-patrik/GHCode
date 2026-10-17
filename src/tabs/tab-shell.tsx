@@ -27,16 +27,18 @@ export function TabShell({
   tab,
   actions,
   toolbar,
+  hideToolbar = false,
   children,
 }: {
   tab: WorkbenchTab;
   actions: TabActions;
   toolbar?: ReactNode;
+  hideToolbar?: boolean;
   children: ReactNode;
 }) {
   return (
     <section className="workbench-tab-shell">
-      <header className="workbench-tab-toolbar">
+      {!hideToolbar && <header className="workbench-tab-toolbar">
         <div className="workbench-tab-toolbar-main">{toolbar}</div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -73,7 +75,7 @@ export function TabShell({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </header>
+      </header>}
       <div className="workbench-tab-content">{children}</div>
     </section>
   );
