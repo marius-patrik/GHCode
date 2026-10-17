@@ -99,7 +99,7 @@ _Source: [0004-single-darkfactory-root.md](decisions/0004-single-darkfactory-roo
 
 ### Decision
 
-One WorkspaceProvider and workbench shell own GitHub identity, file tree, source changes, Dockview tabs and status. FactoryProvider derives contract/architecture views and discrepancies; the native Explorer projects desired, observed or changed paths. The perspective is rendered directly in the main empty/editor area and is not a tab type.
+One WorkspaceProvider and workbench shell own GitHub identity, file tree, source changes, Dockview tabs and status. FactoryProvider derives contract/architecture views and discrepancies; the native Explorer projects desired, observed or changed paths. Each perspective is a native Dockview tab type rendered inside the existing main surface, sharing the tab bar with editors and other tabs. The activity rail activates those same tabs. Persisted layouts without perspective tabs are migrated by adding native tabs; there is no overlay or second root.
 
 PR builds are staged under gh-pages/pr-N and published together with the last passing main artifact using GitHub Pages Actions, following the BoardGamesWithQuests deployment architecture.
 
@@ -152,6 +152,6 @@ PR builds are staged under gh-pages/pr-N and published together with the last pa
 
 ### Consequences
 
-No redundant project selectors, tab implementations, status bars or implementation runtime. The contract parser consumes the generated .agents docs, which compile from approved source records. Missing documentation is not evidence of missing code.
+No redundant project selectors, nested tab implementations, status bars or implementation runtime. All major main-area views are native Dockview tabs. The contract parser consumes the generated .agents docs, which compile from approved source records. Missing documentation is not evidence of missing code.
 
 _Source: [0005-unified-workbench.md](decisions/0005-unified-workbench.md)_
