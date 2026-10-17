@@ -8,7 +8,7 @@
 }
 
 .workbench-center {
-  grid-template-columns: var(--primary-size) var(--root-resizer-size) minmax(0, 1fr) var(--root-resizer-size) var(--secondary-size);
+  grid-template-columns: 42px var(--primary-size) var(--root-resizer-size) minmax(0, 1fr) var(--root-resizer-size) var(--secondary-size);
 }
 
 .primary-collapsed .workbench-center {
@@ -16,7 +16,7 @@
 }
 
 .secondary-collapsed .workbench-center {
-  grid-template-columns: var(--primary-size) var(--root-resizer-size) minmax(0, 1fr) 0 0;
+  grid-template-columns: 42px var(--primary-size) var(--root-resizer-size) minmax(0, 1fr) 0 0;
 }
 
 .primary-collapsed.secondary-collapsed .workbench-center {
@@ -182,3 +182,27 @@
 .workbench-dockview-host-empty {
   display: none;
 }
+
+
+.factory-activity-rail {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 9px 3px;
+  gap: 6px;
+  border-right: 1px solid var(--toolbar-border);
+  background: var(--toolbar);
+}
+.factory-activity-rail button {
+  width: 34px; height: 34px;
+  border: 0; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--muted); cursor: pointer;
+}
+.factory-activity-rail button:hover { background: var(--surface-2); color: var(--text); }
+.factory-activity-rail button.active { background: var(--surface-2); color: var(--text); box-shadow: inset 2px 0 0 var(--text); }
+.factory-activity-rail button:focus-visible { outline: 2px solid var(--text); outline-offset: -2px; }
