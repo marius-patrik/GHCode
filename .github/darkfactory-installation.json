@@ -3,5 +3,10 @@
   "schema": 2,
   "slug": "marius-patrik/GHCode",
   "sourceBranch": "development",
-  "upstream_sha": "36a14ebe8d13d535ff2e367f8e147090b615cea4"
+  "release": {
+    "tag": "v0.292.3",
+    "sha": "fc5896c9ffbf9b1ac5762a271ec2b26ee0efafd4",
+    "digest": "ce2899a8ca2cc65b4baffedd7c2992be29e99f604a12ce59d752b0b363d262ca"
+  },
+  "fileHashes": {}
 }
