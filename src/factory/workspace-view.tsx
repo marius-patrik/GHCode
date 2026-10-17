@@ -6,13 +6,9 @@ import {
   Download,
   ExternalLink,
   FileCode2,
-  FileText,
   FolderTree,
   Plus,
-  RefreshCw,
-  Search,
   Send,
-  X,
 } from "lucide-react";
 import { AnimatedIcon } from "@/components/animated-icon";
 import { useFactory } from "@/factory/context";
@@ -22,17 +18,8 @@ import { createGithubIssue } from "@/github/client";
 import { useWorkbenchRuntime } from "@/workbench/runtime";
 import { useWorkspace } from "@/workspace/context";
 import { languageForPath } from "@/workspace/languages";
-import { compileContract, parseContract, registryRecords, REGISTRIES } from "@/factory/contracts";
+import { registryRecords, REGISTRIES } from "@/factory/contracts";
 import "@/factory/factory.css";
-
-type Pane = "files" | "contracts" | "markdown" | "issues";
-
-const PANES: Array<{ id: Pane; label: string }> = [
-  { id: "files", label: "Files" },
-  { id: "contracts", label: "Contracts" },
-  { id: "markdown", label: "Markdown" },
-  { id: "issues", label: "Issues" },
-];
 
 function downloadMarkdown(name: string, contents: string) {
   const blob = new Blob([contents], { type: "text/markdown;charset=utf-8" });
@@ -74,9 +61,7 @@ export function FactoryWorkspaceView() {
   const [published, setPublished] = useState<Record<string, number>>({});
   const [publishing, setPublishing] = useState<string | null>(null);
   const [dispatchError, setDispatchError] = useState("");
-  const [pane, setPane] = useState<Pane>("files");
   const changeConcern = factory.setConcern;
-  const changePane = (value: Pane) => setPane(value);
 
   const previousRepo = useRef<string | null>(null);
   useEffect(() => {
@@ -285,66 +270,6 @@ export function FactoryWorkspaceView() {
     </div>
   );
 
-  const markdownView = (
-    <div className="factory-markdown">
-      <div className="factory-pane-heading">
-        <FileText size={14} />
-        <strong>{selectedDoc?.path ?? "No document"}</strong>
-      </div>
-      {selectedDoc ? (
-        <>
-          {selectedDoc.error && (
-            <div className="factory-error">
-              <CircleAlert size={14} />
-              {selectedDoc.error}
-            </div>
-          )}
-          <div className="factory-actions">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => openEditor(canonicalEditPath(selectedDoc.path))}
-            >
-              Open in Monaco
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                downloadMarkdown(
-                  selectedDoc.path.split("/").at(-1) ?? "specification.md",
-                  selectedDoc.raw,
-                )
-              }
-            >
-              <Download size={14} /> Export Markdown
-            </Button>
-            {selectedDoc.contract && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  downloadMarkdown(
-                    "compiled-" + selectedDoc.path.split("/").at(-1),
-                    compileContract(selectedDoc.contract!, parseContract(selectedDoc.raw).prose),
-                  )
-                }
-              >
-                Compile frontmatter
-              </Button>
-            )}
-          </div>
-          <pre className="factory-code factory-markdown-source">{selectedDoc.raw}</pre>
-        </>
-      ) : (
-        <p className="factory-empty">
-          No {concern === "repository" ? "ARCHITECTURE.md" : "PRD.md"} in the selected repository.
-          The factory does not synthesize implementation evidence.
-        </p>
-      )}
-    </div>
-  );
-
   const issuesView = (
     <div className="factory-issues">
       <div className="factory-pane-heading">
@@ -434,133 +359,142 @@ export function FactoryWorkspaceView() {
     );
   }
 
+  const selectedSource = concern === "repository" ? reported : desired;
+
+  const documentActions = (
+    <div className="factory-view-actions">
+      {selectedSource && (
+        <Button variant="outline" size="sm" onClick={() => openEditor(canonicalEditPath(selectedSource.path))}>
+          <FileCode2 size={13} /> Edit source
+        </Button>
+      )}
+      {selectedFile && (
+        <Button variant="ghost" size="sm" onClick={() => factory.selectPath(null)}>
+          Clear file selection
+        </Button>
+      )}
+    </div>
+  );
+
+  const mainContent =
+    concern === "specification" ? (
+      <section className="factory-view" aria-label="Specification contracts">
+        <header className="factory-view-head">
+          <div>
+            <span className="factory-view-eyebrow">DESIRED STATE</span>
+            <h1>Specification</h1>
+            <p>{desired?.path ?? "No approved product specification in this repository."}</p>
+          </div>
+          {documentActions}
+        </header>
+        <div className="factory-view-content">
+          {selectedFile ? filesView : contractsView}
+        </div>
+      </section>
+    ) : concern === "repository" ? (
+      <section className="factory-view" aria-label="Repository architecture">
+        <header className="factory-view-head">
+          <div>
+            <span className="factory-view-eyebrow">OBSERVED STATE</span>
+            <h1>Repository</h1>
+            <p>{reported?.path ?? "No documented architecture in this revision."}</p>
+          </div>
+          {documentActions}
+        </header>
+        <div className="factory-view-content">
+          {selectedFile ? filesView : reported?.contract ? contractsView : (
+            <div className="factory-no-selection">
+              <FolderTree size={24} />
+              <strong>{observedFiles.length} repository paths</strong>
+              <p>Select a file in the native Explorer to inspect source evidence. Architecture documentation is optional and never substituted for code.</p>
+            </div>
+          )}
+        </div>
+      </section>
+    ) : (
+      <section className="factory-view" aria-label="Architecture delta">
+        <header className="factory-view-head">
+          <div>
+            <span className="factory-view-eyebrow">EVIDENCE REVIEW</span>
+            <h1>Delta</h1>
+            <p>{delta.length} discrepancies · {drafts.length} reviewable issue drafts</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => changeConcern("specification")}>
+            <BookOpen size={13} /> Inspect target
+          </Button>
+        </header>
+        <div className="factory-delta-layout factory-view-content">
+          <section className="factory-delta-findings" aria-label="Observed differences">
+            <div className="factory-pane-heading">
+              <strong>Differences</strong>
+              <span>{delta.length}</span>
+            </div>
+            {delta.length ? delta.map((finding) => (
+              <button
+                type="button"
+                className={`factory-delta-row${finding.path === selectedFile ? " selected" : ""}`}
+                key={finding.id}
+                onClick={() => finding.path ? factory.selectPath(finding.path) : undefined}
+              >
+                <Status tone={finding.status === "missing" ? "bad" : "warn"}>{finding.status}</Status>
+                <strong>{finding.label}</strong>
+                <span>{finding.explanation}</span>
+              </button>
+            )) : (
+              <p className="factory-empty">
+                No discrepancies are supported by the loaded documents and repository tree.
+                This does not assert that implementation is complete.
+              </p>
+            )}
+            {selectedFile && (
+              <div className="factory-delta-inspector">{filesView}</div>
+            )}
+          </section>
+          <section className="factory-delta-drafts" aria-label="Issue drafts">{issuesView}</section>
+        </div>
+      </section>
+    );
+
   return (
     <div className="factory-workspace">
-      {readError && (
-        <div role="alert" className="factory-error">
-          <CircleAlert size={14} /> {readError}
-        </div>
-      )}
+      {readError && <div role="alert" className="factory-error"><CircleAlert size={14}/>{readError}</div>}
+      {reading && <div className="factory-loading" role="status">Reading repository contracts…</div>}
       {concern === "overview" ? (
         <div className="factory-overview">
-          <h2>Project evidence</h2>
-          <p>
-            The factory works from this repository's checked-out tree, PRD.md and ARCHITECTURE.md;
-            it does not run code changes.
-          </p>
+          <span className="factory-view-eyebrow">PROJECT WORKSPACE</span>
+          <h1>{currentRepo.repository.fullName}</h1>
+          <p>Desired specification, documented architecture and actual repository files share one GitHub revision and workbench.</p>
           <div className="factory-metrics">
-            <div>
-              <strong>{registryRecords(target, "requirements").length}</strong>
-              <span>Requirements</span>
-            </div>
-            <div>
-              <strong>{observedFiles.filter((file) => file.type === "file").length}</strong>
-              <span>Observed files</span>
-            </div>
-            <div>
-              <strong>{delta.length}</strong>
-              <span>Discrepancies</span>
-            </div>
-            <div>
-              <strong>{validation.length}</strong>
-              <span>Contract errors</span>
-            </div>
+            <div><strong>{registryRecords(target, "requirements").length}</strong><span>Requirements</span></div>
+            <div><strong>{observedFiles.filter((file) => file.type === "file").length}</strong><span>Observed files</span></div>
+            <div><strong>{delta.length}</strong><span>Discrepancies</span></div>
+            <div><strong>{validation.length}</strong><span>Contract errors</span></div>
           </div>
           <div className="factory-evidence">
-            <div>
-              <Status tone={desired?.contract ? "good" : "warn"}>
-                {desired?.contract ? "Parsed" : "Unavailable"}
-              </Status>
-              <strong>PRD</strong>
-              <span>{desired?.path ?? "No target contract"}</span>
-            </div>
-            <div>
-              <Status tone={reported?.contract ? "good" : "warn"}>
-                {reported?.contract ? "Parsed" : "Unavailable"}
-              </Status>
-              <strong>Architecture</strong>
-              <span>{reported?.path ?? "No reported architecture"}</span>
-            </div>
-            <div>
-              <Status tone="good">Revision scoped</Status>
-              <strong>Repository tree</strong>
-              <span>{currentRepo.treeSha.slice(0, 9)}</span>
-            </div>
+            <div><Status tone={desired?.contract ? "good" : "warn"}>{desired?.contract ? "Parsed" : "Unavailable"}</Status><strong>Specification</strong><span>{desired?.path ?? "No project specification"}</span></div>
+            <div><Status tone={reported?.contract ? "good" : "warn"}>{reported?.contract ? "Parsed" : "Unavailable"}</Status><strong>Architecture</strong><span>{reported?.path ?? "No architecture evidence"}</span></div>
+            <div><Status tone="good">Revision scoped</Status><strong>Source tree</strong><span>{currentRepo.treeSha.slice(0, 12)}</span></div>
           </div>
-          {validation.map((error) => (
-            <p className="factory-error" key={error}>
-              <CircleAlert size={13} /> {error}
-            </p>
-          ))}
+          {validation.map((error) => <p className="factory-error" key={error}><CircleAlert size={13}/>{error}</p>)}
           <div className="factory-actions">
-            <Button
-              onClick={() => {
-                changeConcern("specification");
-                changePane("contracts");
-              }}
-            >
-              Inspect specification
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                changeConcern("delta");
-                changePane("files");
-              }}
-            >
-              Review delta
-            </Button>
+            <Button onClick={() => changeConcern("specification")}>Open specification</Button>
+            <Button variant="outline" onClick={() => changeConcern("delta")}>Review discrepancies</Button>
+            <Button variant="outline" onClick={() => changeConcern("repository")}>Inspect repository</Button>
           </div>
         </div>
       ) : (
-        <>
-          <nav className="factory-panes" aria-label="Shared factory panels">
-            {PANES.map(({ id, label }) => (
-              <button
-                className={pane === id ? "active" : ""}
-                type="button"
-                key={id}
-                onClick={() => changePane(id)}
-              >
-                {label}
-              </button>
-            ))}
-            {(pane === "files" || pane === "contracts") && (
-              <label className="factory-search">
-                <Search size={13} />
-                <input
-                  aria-label="Filter"
-                  value={search}
-                  placeholder="Filter…"
-                  onChange={(event) => setSearch(event.target.value)}
-                />
-                {search && (
-                  <button type="button" aria-label="Clear filter" onClick={() => setSearch("")}>
-                    <X size={12} />
-                  </button>
-                )}
-              </label>
-            )}
-          </nav>
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.main
-              key={`${concern}:${pane}`}
-              className="factory-main"
-              initial={reducedMotion ? false : { opacity: 0, y: 3 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reducedMotion ? undefined : { opacity: 0 }}
-              transition={{ duration: 0.12 }}
-            >
-              {pane === "files"
-                ? filesView
-                : pane === "contracts"
-                  ? contractsView
-                  : pane === "markdown"
-                    ? markdownView
-                    : issuesView}
-            </motion.main>
-          </AnimatePresence>
-        </>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.main
+            key={concern}
+            className="factory-main"
+            initial={reducedMotion ? false : { opacity: 0, y: 3 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reducedMotion ? undefined : { opacity: 0 }}
+            transition={{ duration: 0.12 }}
+          >
+            {mainContent}
+          </motion.main>
+        </AnimatePresence>
       )}
     </div>
   );
