@@ -1,6 +1,6 @@
 /** Public PR builds use a shared, pull-request preview path. Credentials are prohibited there. */
 export function isPublicReviewPreview(): boolean {
-  return typeof window !== "undefined" && window.location.hostname.endsWith(".github.io") && /\\/pr-\\d+(?:\\/|$)/.test(window.location.pathname);
+  return typeof window !== "undefined" && window.location.hostname.endsWith(".github.io") && window.location.pathname.split("/").some((part) => part.startsWith("pr-") && /^[0-9]+$/.test(part.slice(3)));
 }
 
 const TOKEN_KEY = "workbench-github-token";
