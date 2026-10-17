@@ -2,7 +2,6 @@ export type WorkbenchSurface = "primary" | "main" | "secondary" | "panel";
 
 export type WorkbenchTabType =
   | "editor"
-  | "factory"
   | "browser"
   | "explorer"
   | "source-control"
