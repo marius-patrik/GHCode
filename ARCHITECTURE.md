@@ -87,11 +87,11 @@
     },
     {
       "path": ".github/workflows/pr-preview.yml",
-      "role": "On same-repo pull requests, build single-file static preview, publish pr-previews branch, and expose read-only deployment URL."
+      "role": "On same-repository PRs, independently build and stage /pr-N/ on gh-pages, then deploy complete production plus all active PR snapshots through GitHub Pages Actions."
     },
     {
       "path": "src/github/auth.ts",
-      "role": "Suppress authentication and all tokens on raw.githack.com shared-host previews."
+      "role": "Suppress authentication and tokens when served from GitHub Pages /pr-N/ paths."
     }
   ],
   "confidence": {
@@ -113,4 +113,4 @@ GitHub revision tree proves path presence. PRD provides the desired state. ARCHI
 
 ## Build
 
-The regular RSBuild output is used for production GitHub Pages. The `build:standalone` output is published by the PR Preview workflow to an isolated ref; GitHub Deployments and a PR comment provide the review URL. Production remains GitHub Pages from Actions on main.
+The regular RSBuild output is used for production GitHub Pages. The standard RSBuild output is independently staged in the gh-pages branch at /pr-N/. A complete Actions-based GitHub Pages artifact contains the retained production build and all open PR preview builds. A deployment status and PR comment link to the verified native Pages URL.
