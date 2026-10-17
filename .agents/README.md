@@ -7,7 +7,7 @@
 
 GHCode is a browser-native GitHub development workbench integrating desired-state specification, repository inspection, qualified delta and reviewed issue dispatch.
 
-Its UI uses React/TypeScript, Dockview, Monaco, Radix, Motion and Lucide Animated. The workbench activity rail changes a global perspective while keeping a single project/ref selection, Explorer, editor and status bar. The monochrome palette is retained.
+Its UI uses React/TypeScript, Dockview, Monaco, Radix, Motion and Lucide Animated. The main Dockview always displays its tab strip: Overview, Specification, Delta, Repository, editors and other tools are peers. The activity rail activates native tabs while keeping a single project/ref selection, Explorer, editor system and status bar. The monochrome palette is retained.
 
 ### Open a project
 
