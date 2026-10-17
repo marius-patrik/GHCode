@@ -48,7 +48,6 @@ const COMMANDS: Array<{
   type?: WorkbenchTabType;
   action?: "primary" | "secondary" | "panel" | "split-right" | "split-down";
 }> = [
-  { label: "Open Software Factory", type: "factory" },
   { label: "Open Editor", type: "editor" },
   { label: "Open Browser", type: "browser" },
   { label: "Open Explorer", type: "explorer" },
