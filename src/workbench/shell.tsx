@@ -8,7 +8,9 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { GitBranch, PanelBottom, PanelLeft, PanelRight, UserRound } from "lucide-react";
+import { BookOpen, GitBranch, GitCompareArrows, LayoutDashboard, PanelBottom, PanelLeft, PanelRight, UserRound } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useFactory, type FactoryConcern } from "@/factory/context";
 import { useWorkbenchSettings, type AppearanceMode } from "@/settings";
 import { useWorkspace } from "@/workspace/context";
 import { useWorkbenchShortcuts } from "./commands";
@@ -125,6 +127,7 @@ function activeStatusLabel(tab: WorkbenchTab | null) {
 export function WorkbenchShell() {
   const { settings, setSetting } = useWorkbenchSettings();
   const workspace = useWorkspace();
+  const factory = useFactory();
   const [initial] = useState(() => loadWorkbench(settings.theme));
   const [visibility, setVisibility] = useState<Record<WorkbenchSurface, boolean>>(() => ({
     primary: initial.surfaces.primary.visible,
@@ -407,7 +410,7 @@ export function WorkbenchShell() {
       createWorkbenchTab("search", { id: "search", pinned: true }),
       createWorkbenchTab("source-control", { id: "source-control", pinned: true }),
     ],
-    main: [],
+    main: [createWorkbenchTab("factory", { id: "workspace-perspective", pinned: true })],
     secondary: [],
     panel: [
       createWorkbenchTab("problems", { id: "problems", pinned: true }),
@@ -570,6 +573,27 @@ export function WorkbenchShell() {
           </div>
         </header>
         <div className="workbench-center">
+          <nav className="factory-activity-rail" aria-label="Workspace perspectives">
+            {([
+              ["overview", LayoutDashboard, "Overview"],
+              ["specification", BookOpen, "Specification"],
+              ["delta", GitCompareArrows, "Delta"],
+              ["repository", GitBranch, "Repository"],
+            ] as const).map(([concern, Icon, label]) => (
+              <Tooltip key={concern}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={label}
+                    aria-pressed={factory.concern === concern}
+                    className={factory.concern === concern ? "active" : ""}
+                    onClick={() => { factory.setConcern(concern as FactoryConcern); setSurfaceVisible("primary", true); }}
+                  ><Icon size={17} /></button>
+                </TooltipTrigger>
+                <TooltipContent side="right">{label}</TooltipContent>
+              </Tooltip>
+            ))}
+          </nav>
           <aside className="root-surface root-primary"><WorkbenchSurfaceView surface="primary" restoredLayout={initial.surfaces.primary.layout} defaultTabs={defaults.primary} onReady={registerSurface} onActiveTabChange={handleActiveTabChange} /></aside>
           <hr
             className="root-resizer root-resizer-column root-resizer-primary"
