@@ -84,12 +84,21 @@
     {
       "path": "rsbuild.config.ts",
       "role": "Dual-mode production/site build and standalone inlined HTML preview."
+    },
+    {
+      "path": ".github/workflows/pr-preview.yml",
+      "role": "On same-repo pull requests, build single-file static preview, publish pr-previews branch, and expose read-only deployment URL."
+    },
+    {
+      "path": "src/github/auth.ts",
+      "role": "Suppress authentication and all tokens on raw.githack.com shared-host previews."
     }
   ],
   "confidence": {
     "tree": "GitHub revision manifest",
     "contracts": "Declared wiring and reviewed source; not behaviorally verified until CI/browser tests",
-    "browser": "Pending CI compilation and acceptance evidence"
+    "browser": "Pending CI compilation and acceptance evidence",
+    "preview": "PR #16 build and deployment succeeded; CI browser acceptance tracked separately."
   }
 }
 ---
@@ -104,4 +113,4 @@ GitHub revision tree proves path presence. PRD provides the desired state. ARCHI
 
 ## Build
 
-The regular RSBuild output is used for production GitHub Pages. A separate `build:standalone` inlines HTML scripts/styles/assets for a reviewable single HTML document from the same source code. The draft PR workflow publishes the standalone artifact only after checks.
+The regular RSBuild output is used for production GitHub Pages. The `build:standalone` output is published by the PR Preview workflow to an isolated ref; GitHub Deployments and a PR comment provide the review URL. Production remains GitHub Pages from Actions on main.
