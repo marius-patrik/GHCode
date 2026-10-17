@@ -4,6 +4,8 @@ import type { editor as MonacoEditor } from "monaco-editor";
 import { registerCapabilityLanguages } from "@/capabilities/monaco";
 import type { AppearanceMode } from "@/settings";
 import { useWorkspace } from "@/workspace/context";
+import { useFactory } from "@/factory/context";
+import { isGeneratedDocument } from "@/workspace/governance";
 import { languageForPath } from "@/workspace/languages";
 import type { WorkbenchTab } from "@/workbench/model";
 import {
@@ -34,8 +36,10 @@ export function EditorTab({
   updateState: (patch: Record<string, unknown>) => void;
 }) {
   const workspace = useWorkspace();
+  const factory = useFactory();
   const path = typeof tab.state.path === "string" ? tab.state.path : "Untitled";
   const repositoryFile = path !== "Untitled" && Boolean(workspace.workspace);
+  const generated = repositoryFile && isGeneratedDocument(path);
   const language =
     typeof tab.state.language === "string" ? tab.state.language : languageForPath(path);
   const renderer: ResourceRenderer = tab.state.renderer === "browser" ? "browser" : "editor";
@@ -131,14 +135,14 @@ export function EditorTab({
   }, [path, repositoryFile, tab.state.value, workspace.readFile]);
 
   useEffect(() => {
-    if (!repositoryFile || !edited || loadedPath !== path) return;
+    if (!repositoryFile || generated || !edited || loadedPath !== path) return;
     const timer = window.setTimeout(() => {
       void workspace.writeFile(path, value).catch((reason) => {
         setError(reason instanceof Error ? reason.message : String(reason));
       });
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [edited, loadedPath, path, repositoryFile, value, workspace.writeFile]);
+  }, [edited, generated, loadedPath, path, repositoryFile, value, workspace.writeFile]);
 
   const liveCurrent = useMemo(() => {
     if (!resource.current || loadedPath !== path || resource.current.content === null)
@@ -229,6 +233,7 @@ export function EditorTab({
         value={value}
         theme={theme === "light" ? "light" : "vs-dark"}
         onChange={(next) => {
+          if (generated) return;
           const content = next ?? "";
           setValue(content);
           if (repositoryFile) setEdited(true);
@@ -238,6 +243,7 @@ export function EditorTab({
           automaticLayout: true,
           minimap: { enabled: true },
           wordWrap: "on",
+          readOnly: generated,
           scrollBeyondLastLine: false,
         }}
       />
@@ -282,6 +288,14 @@ export function EditorTab({
         target={compareTarget}
         onChange={updateState}
       />
+      {generated && (
+        <div className="resource-generated-notice" role="note">
+          <span>Generated document · edit its authored records in .agents/ instead of modifying this projection.</span>
+          <button type="button" onClick={() => factory.setConcern(path === ".agents/ARCHITECTURE.md" ? "repository" : "specification")}>
+            Open canonical sources
+          </button>
+        </div>
+      )}
       <div className={review ? "resource-body review-enabled" : "resource-body"}>
         {body}
         <ReviewOverlay enabled={review} />
