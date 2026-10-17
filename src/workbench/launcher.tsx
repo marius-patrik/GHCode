@@ -43,16 +43,9 @@ export const LAUNCHER_ENTRIES: LauncherEntry[] = [
 
 type WorkspaceRuntime = ReturnType<typeof useWorkspace>;
 
-export function launcherEntryDisabled(
-  entry: LauncherEntry,
-  workspace: WorkspaceRuntime,
-) {
+export function launcherEntryDisabled(entry: LauncherEntry, workspace: WorkspaceRuntime) {
   if (entry.action === "recent") return workspace.recent.length === 0;
-  if (
-    entry.action === "new-file" ||
-    entry.action === "open-file" ||
-    entry.action === "diff"
-  ) {
+  if (entry.action === "new-file" || entry.action === "open-file" || entry.action === "diff") {
     if (!workspace.workspace) return true;
   }
   if (entry.action === "diff") {

@@ -16,7 +16,12 @@ import {
 } from "./resource-view";
 
 const COMPARE_MODES = new Set<CompareMode>([
-  "none", "working", "staged", "commit", "branch", "pull-request",
+  "none",
+  "working",
+  "staged",
+  "commit",
+  "branch",
+  "pull-request",
 ]);
 
 export function EditorTab({
@@ -31,14 +36,18 @@ export function EditorTab({
   const workspace = useWorkspace();
   const path = typeof tab.state.path === "string" ? tab.state.path : "Untitled";
   const repositoryFile = path !== "Untitled" && Boolean(workspace.workspace);
-  const language = typeof tab.state.language === "string" ? tab.state.language : languageForPath(path);
+  const language =
+    typeof tab.state.language === "string" ? tab.state.language : languageForPath(path);
   const renderer: ResourceRenderer = tab.state.renderer === "browser" ? "browser" : "editor";
   const review = tab.state.review === true;
-  const compareCandidate = typeof tab.state.compare === "string" ? tab.state.compare as CompareMode : "none";
+  const compareCandidate =
+    typeof tab.state.compare === "string" ? (tab.state.compare as CompareMode) : "none";
   const compare = COMPARE_MODES.has(compareCandidate) ? compareCandidate : "none";
   const compareTarget = typeof tab.state.compareTarget === "string" ? tab.state.compareTarget : "";
 
-  const [value, setValue] = useState(() => typeof tab.state.value === "string" ? tab.state.value : "");
+  const [value, setValue] = useState(() =>
+    typeof tab.state.value === "string" ? tab.state.value : "",
+  );
   const [loadedPath, setLoadedPath] = useState(repositoryFile ? "" : path);
   const [edited, setEdited] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,11 +56,14 @@ export function EditorTab({
   const editorDisposables = useRef<Array<{ dispose: () => void }>>([]);
   const resource = useResourceComparison(repositoryFile ? path : "", compare, compareTarget);
 
-  useEffect(() => () => {
-    if (viewStateTimer.current !== null) window.clearTimeout(viewStateTimer.current);
-    for (const disposable of editorDisposables.current) disposable.dispose();
-    editorDisposables.current = [];
-  }, []);
+  useEffect(
+    () => () => {
+      if (viewStateTimer.current !== null) window.clearTimeout(viewStateTimer.current);
+      for (const disposable of editorDisposables.current) disposable.dispose();
+      editorDisposables.current = [];
+    },
+    [],
+  );
 
   const handleEditorMount: OnMount = (editor) => {
     editorRef.current = editor;
@@ -82,12 +94,7 @@ export function EditorTab({
     if (tab.state.goToLineRequest === null) return;
     const requestedLine = Number(tab.state.goToLine);
     const target = editorRef.current;
-    if (
-      renderer !== "editor" ||
-      !target ||
-      !Number.isInteger(requestedLine) ||
-      requestedLine < 1
-    ) {
+    if (renderer !== "editor" || !target || !Number.isInteger(requestedLine) || requestedLine < 1) {
       return;
     }
     const lineCount = target.getModel()?.getLineCount() ?? requestedLine;
@@ -108,7 +115,8 @@ export function EditorTab({
     setLoadedPath("");
     setError(null);
     setEdited(false);
-    void workspace.readFile(path)
+    void workspace
+      .readFile(path)
       .then((content) => {
         if (disposed) return;
         setValue(content);
@@ -133,7 +141,8 @@ export function EditorTab({
   }, [edited, loadedPath, path, repositoryFile, value, workspace.writeFile]);
 
   const liveCurrent = useMemo(() => {
-    if (!resource.current || loadedPath !== path || resource.current.content === null) return resource.current;
+    if (!resource.current || loadedPath !== path || resource.current.content === null)
+      return resource.current;
     return {
       ...resource.current,
       content: value,
@@ -142,10 +151,19 @@ export function EditorTab({
   }, [loadedPath, path, resource.current, value]);
 
   if (error) {
-    return <div className="tab-empty"><strong>Could not open {path}</strong><span>{error}</span></div>;
+    return (
+      <div className="tab-empty">
+        <strong>Could not open {path}</strong>
+        <span>{error}</span>
+      </div>
+    );
   }
   if (repositoryFile && loadedPath !== path) {
-    return <div className="tab-empty"><span>Loading {path}…</span></div>;
+    return (
+      <div className="tab-empty">
+        <span>Loading {path}…</span>
+      </div>
+    );
   }
 
   const status = repositoryFile ? workspace.fileStatus(path) : null;
@@ -154,14 +172,33 @@ export function EditorTab({
 
   let body: ReactNode;
   if (!repositoryFile && renderer === "browser") {
-    body = <div className="tab-empty"><strong>Browser renderer</strong><span>Save or open a repository file before using Browser rendering.</span></div>;
+    body = (
+      <div className="tab-empty">
+        <strong>Browser renderer</strong>
+        <span>Save or open a repository file before using Browser rendering.</span>
+      </div>
+    );
   } else if (compareActive && resource.loading) {
-    body = <div className="tab-empty"><span>Loading comparison…</span></div>;
+    body = (
+      <div className="tab-empty">
+        <span>Loading comparison…</span>
+      </div>
+    );
   } else if (compareActive && resource.error) {
-    body = <div className="tab-empty"><strong>Comparison unavailable</strong><span>{resource.error}</span></div>;
+    body = (
+      <div className="tab-empty">
+        <strong>Comparison unavailable</strong>
+        <span>{resource.error}</span>
+      </div>
+    );
   } else if (renderer === "editor" && compareActive && comparison) {
     if (comparison.before.content === null || comparison.after.content === null) {
-      body = <div className="tab-empty"><strong>Binary comparison</strong><span>Switch Renderer to Browser for supported binary renderers.</span></div>;
+      body = (
+        <div className="tab-empty">
+          <strong>Binary comparison</strong>
+          <span>Switch Renderer to Browser for supported binary renderers.</span>
+        </div>
+      );
     } else {
       body = (
         <DiffEditor
@@ -219,9 +256,18 @@ export function EditorTab({
       </div>
     );
   } else if (resource.loading) {
-    body = <div className="tab-empty"><span>Loading renderer…</span></div>;
+    body = (
+      <div className="tab-empty">
+        <span>Loading renderer…</span>
+      </div>
+    );
   } else if (resource.error) {
-    body = <div className="tab-empty"><strong>Renderer unavailable</strong><span>{resource.error}</span></div>;
+    body = (
+      <div className="tab-empty">
+        <strong>Renderer unavailable</strong>
+        <span>{resource.error}</span>
+      </div>
+    );
   } else {
     body = <RenderedResource path={path} snapshot={liveCurrent} />;
   }

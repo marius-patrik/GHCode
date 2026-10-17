@@ -8,7 +8,9 @@
 }
 
 .workbench-center {
-  grid-template-columns: 42px var(--primary-size) var(--root-resizer-size) minmax(0, 1fr) var(--root-resizer-size) var(--secondary-size);
+  grid-template-columns: 42px var(--primary-size) var(--root-resizer-size) minmax(0, 1fr) var(
+      --root-resizer-size
+    ) var(--secondary-size);
 }
 
 .primary-collapsed .workbench-center {
@@ -123,7 +125,7 @@
 
 .workspace-github-auth-button:disabled {
   cursor: default;
-  opacity: .45;
+  opacity: 0.45;
 }
 
 .workspace-github-auth .workspace-help {
@@ -155,7 +157,6 @@
   color: var(--text);
 }
 
-
 .empty-workbench,
 .empty-workbench-card,
 .empty-workbench-card button {
@@ -183,7 +184,6 @@
   display: none;
 }
 
-
 .factory-activity-rail {
   grid-column: 1;
   grid-row: 1;
@@ -198,47 +198,139 @@
   background: var(--toolbar);
 }
 .factory-activity-rail button {
-  width: 34px; height: 34px;
-  border: 0; border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  background: transparent; color: var(--muted); cursor: pointer;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
 }
-.factory-activity-rail button:hover { background: var(--surface-2); color: var(--text); }
-.factory-activity-rail button.active { background: var(--surface-2); color: var(--text); box-shadow: inset 2px 0 0 var(--text); }
-.factory-activity-rail button:focus-visible { outline: 2px solid var(--text); outline-offset: -2px; }
+.factory-activity-rail button:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.factory-activity-rail button.active {
+  background: var(--surface-2);
+  color: var(--text);
+  box-shadow: inset 2px 0 0 var(--text);
+}
+.factory-activity-rail button:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: -2px;
+}
 
 /* The shell owns six columns. Every region has a stable grid slot even when hidden. */
 .workbench-center {
   grid-template-rows: minmax(0, 1fr);
   isolation: isolate;
 }
-.factory-activity-rail { grid-column: 1; grid-row: 1; z-index: 2; }
-.root-primary { grid-column: 2; grid-row: 1; }
-.root-resizer-primary { grid-column: 3; grid-row: 1; }
-.root-main { grid-column: 4; grid-row: 1; position: relative; min-width: 0; min-height: 0; overflow: hidden; }
-.root-resizer-secondary { grid-column: 5; grid-row: 1; }
-.root-secondary { grid-column: 6; grid-row: 1; }
-.root-resizer { z-index: 1; }
-.primary-collapsed .root-main, .secondary-collapsed .root-main { visibility: visible; pointer-events: auto; }
-.workbench-surface-main { min-width: 0; min-height: 0; }
-.workbench-dockview-host-empty { display: none !important; }
-:root { --layer-surface: 0; --layer-resizer: 1; --layer-popover: 100; --layer-modal: 200; }
-[data-radix-popper-content-wrapper] { z-index: var(--layer-popover) !important; }
-.workspace-dialog-backdrop { z-index: var(--layer-modal); }
-.workbench-header { z-index: 3; }
-.workbench-statusbar { z-index: 2; }
+.factory-activity-rail {
+  grid-column: 1;
+  grid-row: 1;
+  z-index: 2;
+}
+.root-primary {
+  grid-column: 2;
+  grid-row: 1;
+}
+.root-resizer-primary {
+  grid-column: 3;
+  grid-row: 1;
+}
+.root-main {
+  grid-column: 4;
+  grid-row: 1;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.root-resizer-secondary {
+  grid-column: 5;
+  grid-row: 1;
+}
+.root-secondary {
+  grid-column: 6;
+  grid-row: 1;
+}
+.root-resizer {
+  z-index: 1;
+}
+.primary-collapsed .root-main,
+.secondary-collapsed .root-main {
+  visibility: visible;
+  pointer-events: auto;
+}
+.workbench-surface-main {
+  min-width: 0;
+  min-height: 0;
+}
+.workbench-dockview-host-empty {
+  display: none !important;
+}
+:root {
+  --layer-surface: 0;
+  --layer-resizer: 1;
+  --layer-popover: 100;
+  --layer-modal: 200;
+}
+[data-radix-popper-content-wrapper] {
+  z-index: var(--layer-popover) !important;
+}
+.workspace-dialog-backdrop {
+  z-index: var(--layer-modal);
+}
+.workbench-header {
+  z-index: 3;
+}
+.workbench-statusbar {
+  z-index: 2;
+}
 @media (max-width: 680px) {
-  .workbench-center { grid-template-columns: 42px var(--primary-size) var(--root-resizer-size) minmax(0,1fr) 0 0; }
-  .workbench-shell.primary-collapsed .workbench-center { grid-template-columns: 42px 0 0 minmax(0,1fr) 0 0; }
+  .workbench-center {
+    grid-template-columns: 42px var(--primary-size) var(--root-resizer-size) minmax(0, 1fr) 0 0;
+  }
+  .workbench-shell.primary-collapsed .workbench-center {
+    grid-template-columns: 42px 0 0 minmax(0, 1fr) 0 0;
+  }
 }
 
 /* Project perspective and editable documents are modes of one main workspace. */
-.root-main > .factory-home { position: absolute; inset: 0; z-index: 1; display: none; }
-.root-main > .workbench-surface-main { position: absolute; inset: 0; z-index: 0; }
-.root-main.perspective-visible > .factory-home { display: flex; }
-.root-main.perspective-visible > .workbench-surface-main { pointer-events: none; }
-.workbench-tab-dragging .root-main > .factory-home { pointer-events: none; opacity: 0; }
-.workbench-tab-dragging .root-main > .workbench-surface-main { pointer-events: auto; }
+.root-main > .factory-home {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: none;
+}
+.root-main > .workbench-surface-main {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.root-main.perspective-visible > .factory-home {
+  display: flex;
+}
+.root-main.perspective-visible > .workbench-surface-main {
+  pointer-events: none;
+}
+.workbench-tab-dragging .root-main > .factory-home {
+  pointer-events: none;
+  opacity: 0;
+}
+.workbench-tab-dragging .root-main > .workbench-surface-main {
+  pointer-events: auto;
+}
 
-.factory-rail-separator { width: 24px; border-top: 1px solid var(--toolbar-border); margin: 8px 0 3px; }
-.factory-activity-rail button:disabled { opacity: .4; cursor: default; }
+.factory-rail-separator {
+  width: 24px;
+  border-top: 1px solid var(--toolbar-border);
+  margin: 8px 0 3px;
+}
+.factory-activity-rail button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

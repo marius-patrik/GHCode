@@ -20,13 +20,30 @@ export type Discrepancy = {
 };
 
 export const REGISTRIES = [
-  "actors", "requirements", "features", "runtimes", "components",
-  "algorithms", "interfaces", "ui", "data", "invariants", "dependencies",
-  "quality", "acceptance", "files", "decisions",
+  "actors",
+  "requirements",
+  "features",
+  "runtimes",
+  "components",
+  "algorithms",
+  "interfaces",
+  "ui",
+  "data",
+  "invariants",
+  "dependencies",
+  "quality",
+  "acceptance",
+  "files",
+  "decisions",
 ] as const;
 
 export function normalizePath(path: string): string {
-  return path.trim().replace(/\\/g, "/").replace(/^\.\//, "").replace(/^\/+/, "").replace(/\/{2,}/g, "/");
+  return path
+    .trim()
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "")
+    .replace(/^\/+/, "")
+    .replace(/\/{2,}/g, "/");
 }
 
 export function parseContract(input: string): { contract: Contract; prose: string } {
@@ -37,17 +54,34 @@ export function parseContract(input: string): { contract: Contract; prose: strin
   const embedded = source.match(/\`\`\`json[ \t]*\r?\n([\s\S]*?)\r?\n\`\`\`/);
   let candidate: unknown;
   if (frontmatter) {
-    try { candidate = JSON.parse(frontmatter[1]); }
-    catch { /* A source-record status header is YAML; its first JSON contract is in a fenced block. */ }
+    try {
+      candidate = JSON.parse(frontmatter[1]);
+    } catch {
+      /* A source-record status header is YAML; its first JSON contract is in a fenced block. */
+    }
   }
   if (!candidate && embedded) {
-    try { candidate = JSON.parse(embedded[1]); }
-    catch { throw new Error("The project-owned JSON contract block is malformed."); }
+    try {
+      candidate = JSON.parse(embedded[1]);
+    } catch {
+      throw new Error("The project-owned JSON contract block is malformed.");
+    }
   }
-  if (!candidate || Array.isArray(candidate) || typeof candidate !== "object" || typeof (candidate as Contract).kind !== "string") {
+  if (
+    !candidate ||
+    Array.isArray(candidate) ||
+    typeof candidate !== "object" ||
+    typeof (candidate as Contract).kind !== "string"
+  ) {
     throw new Error("No valid JSON contract in project-owned Markdown.");
   }
-  return { contract: candidate as Contract, prose: frontmatter && candidate && !embedded ? source.slice(frontmatter[0].length).trimStart() : source };
+  return {
+    contract: candidate as Contract,
+    prose:
+      frontmatter && candidate && !embedded
+        ? source.slice(frontmatter[0].length).trimStart()
+        : source,
+  };
 }
 
 export function compileContract(contract: Contract, prose = ""): string {
@@ -57,7 +91,10 @@ export function compileContract(contract: Contract, prose = ""): string {
 export function registryRecords(contract: Contract | null, registry: string): ContractRecord[] {
   const records = contract?.[registry];
   return Array.isArray(records)
-    ? records.filter((record): record is ContractRecord => record && typeof record === "object" && !Array.isArray(record))
+    ? records.filter(
+        (record): record is ContractRecord =>
+          record && typeof record === "object" && !Array.isArray(record),
+      )
     : [];
 }
 
@@ -66,11 +103,16 @@ export function desiredPaths(contract: Contract | null): FileEvidence[] {
     if (typeof record.path !== "string") return [];
     const path = normalizePath(record.path);
     if (!path || path.split("/").includes("..") || path.includes("\u0000")) return [];
-    return [{
-      path,
-      type: record.kind === "dir" || record.kind === "directory" ? "dir" as const : "file" as const,
-      content: typeof record.content === "string" ? record.content : undefined,
-    }];
+    return [
+      {
+        path,
+        type:
+          record.kind === "dir" || record.kind === "directory"
+            ? ("dir" as const)
+            : ("file" as const),
+        content: typeof record.content === "string" ? record.content : undefined,
+      },
+    ];
   });
 }
 
@@ -124,18 +166,33 @@ export function calculateDiscrepancies(
     if (!found) {
       if (completeTree) {
         changes.push({
-          id: `missing:${file.path}`, kind: "file", status: "missing",
-          label: file.path, path: file.path, desired: file,
+          id: `missing:${file.path}`,
+          kind: "file",
+          status: "missing",
+          label: file.path,
+          path: file.path,
+          desired: file,
           explanation: "Path absent from the complete selected-revision repository tree.",
         });
       }
       continue;
     }
-    if (found.type !== file.type || (file.content !== undefined && found.content !== undefined && file.content !== found.content)) {
+    if (
+      found.type !== file.type ||
+      (file.content !== undefined && found.content !== undefined && file.content !== found.content)
+    ) {
       changes.push({
-        id: `changed:${file.path}`, kind: "file", status: "changed",
-        label: file.path, path: file.path, desired: file, actual: found,
-        explanation: found.type !== file.type ? "Declared and observed path types differ." : "Verified source contents differ.",
+        id: `changed:${file.path}`,
+        kind: "file",
+        status: "changed",
+        label: file.path,
+        path: file.path,
+        desired: file,
+        actual: found,
+        explanation:
+          found.type !== file.type
+            ? "Declared and observed path types differ."
+            : "Verified source contents differ.",
       });
     }
   }
@@ -143,28 +200,39 @@ export function calculateDiscrepancies(
   if (completeTree && target.policy?.file_tree_complete === true) {
     const paths = new Set(desired.map((entry) => entry.path));
     for (const file of actual.filter((entry) => entry.type === "file")) {
-      if (!paths.has(file.path)) changes.push({
-        id: `unexpected:${file.path}`, kind: "file", status: "unexpected",
-        path: file.path, label: file.path, actual: file,
-        explanation: "Path not listed in an explicitly exhaustive desired file manifest.",
-      });
+      if (!paths.has(file.path))
+        changes.push({
+          id: `unexpected:${file.path}`,
+          kind: "file",
+          status: "unexpected",
+          path: file.path,
+          label: file.path,
+          actual: file,
+          explanation: "Path not listed in an explicitly exhaustive desired file manifest.",
+        });
     }
   }
 
   if (reported) {
-    const scope = Array.isArray(reported.scope) ? reported.scope as unknown[] : null;
+    const scope = Array.isArray(reported.scope) ? (reported.scope as unknown[]) : null;
     for (const registry of REGISTRIES) {
       if (registry === "files" || (scope && !scope.includes(registry))) continue;
-      const observations = new Map(registryRecords(reported, registry).filter((r) => r.id).map((r) => [r.id, r]));
+      const observations = new Map(
+        registryRecords(reported, registry)
+          .filter((r) => r.id)
+          .map((r) => [r.id, r]),
+      );
       for (const record of registryRecords(target, registry)) {
         if (!record.id) continue;
         const observed = observations.get(record.id);
         if (!observed || stable(record) !== stable(observed)) {
           changes.push({
-            id: `contract:${registry}:${record.id}`, kind: "contract",
+            id: `contract:${registry}:${record.id}`,
+            kind: "contract",
             status: !observed ? "unverified" : "changed",
             label: String(record.title ?? record.id),
-            desired: record, actual: observed,
+            desired: record,
+            actual: observed,
             explanation: !observed
               ? "Absent from reported architecture; inspect source before concluding it is unimplemented."
               : "Target and reported documents disagree; source verification is required.",
@@ -181,9 +249,10 @@ export type DraftIssue = { id: string; title: string; body: string; items: Discr
 export function assembleIssueDrafts(changes: Discrepancy[]): DraftIssue[] {
   const groups = new Map<string, Discrepancy[]>();
   for (const change of changes) {
-    const group = change.kind === "file"
-      ? `Files / ${change.path?.split("/")[0] ?? "root"}`
-      : "Architecture contracts";
+    const group =
+      change.kind === "file"
+        ? `Files / ${change.path?.split("/")[0] ?? "root"}`
+        : "Architecture contracts";
     groups.set(group, [...(groups.get(group) ?? []), change]);
   }
   return Array.from(groups, ([group, items]) => ({
@@ -192,7 +261,10 @@ export function assembleIssueDrafts(changes: Discrepancy[]): DraftIssue[] {
     items,
     body: [
       "## Desired vs observed",
-      ...items.map((item) => `- **${item.status}** \u2014 \`${item.label.replace(/\`/g, "")}\`: ${item.explanation}`),
+      ...items.map(
+        (item) =>
+          `- **${item.status}** \u2014 \`${item.label.replace(/\`/g, "")}\`: ${item.explanation}`,
+      ),
       "",
       "## Verification requirements",
       "- Inspect relevant code at the selected revision.",

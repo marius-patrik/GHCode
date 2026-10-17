@@ -1,12 +1,31 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useWorkspace } from "@/workspace/context";
 import {
-  assembleIssueDrafts, calculateDiscrepancies, desiredPaths, parseContract,
-  validateContract, type Contract, type FileEvidence,
+  assembleIssueDrafts,
+  calculateDiscrepancies,
+  desiredPaths,
+  parseContract,
+  validateContract,
+  type Contract,
+  type FileEvidence,
 } from "./contracts";
 
 export type FactoryConcern = "overview" | "specification" | "delta" | "repository";
-export type FactoryDocument = { path: string; raw: string; contract: Contract | null; error: string | null };
+export type FactoryDocument = {
+  path: string;
+  raw: string;
+  contract: Contract | null;
+  error: string | null;
+};
 type FactoryState = {
   concern: FactoryConcern;
   selectedPath: string | null;
@@ -31,8 +50,16 @@ const REPORTED_PATHS = [".agents/ARCHITECTURE.md", "ARCHITECTURE.md", "docs/ARCH
 function persistedConcern(): FactoryConcern {
   try {
     const value = localStorage.getItem("ghcode-concern");
-    if (value === "overview" || value === "specification" || value === "delta" || value === "repository") return value;
-  } catch { /* Storage can be unavailable in private browsing. */ }
+    if (
+      value === "overview" ||
+      value === "specification" ||
+      value === "delta" ||
+      value === "repository"
+    )
+      return value;
+  } catch {
+    /* Storage can be unavailable in private browsing. */
+  }
   return "repository";
 }
 
@@ -67,13 +94,23 @@ export function FactoryProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [nonce, setNonce] = useState(0);
   const project = workspace.workspace;
-  const actualFiles = useMemo(() => fileInventory(project?.tree ?? [], workspace.committedFiles, workspace.overlays), [project?.tree, workspace.committedFiles, workspace.overlays]);
-  const fileSet = useMemo(() => new Set(actualFiles.filter((f) => f.type === "file").map((f) => f.path)), [actualFiles]);
+  const actualFiles = useMemo(
+    () => fileInventory(project?.tree ?? [], workspace.committedFiles, workspace.overlays),
+    [project?.tree, workspace.committedFiles, workspace.overlays],
+  );
+  const fileSet = useMemo(
+    () => new Set(actualFiles.filter((f) => f.type === "file").map((f) => f.path)),
+    [actualFiles],
+  );
   const refresh = useCallback(() => setNonce((value) => value + 1), []);
   const previousProject = useRef<string | null>(null);
 
   useEffect(() => {
-    try { localStorage.setItem("ghcode-concern", concern); } catch { /* Optional persistence. */ }
+    try {
+      localStorage.setItem("ghcode-concern", concern);
+    } catch {
+      /* Optional persistence. */
+    }
   }, [concern]);
 
   useEffect(() => {
@@ -93,7 +130,9 @@ export function FactoryProvider({ children }: { children: ReactNode }) {
     setError(null);
     if (!project) {
       setLoading(false);
-      return () => { active = false; };
+      return () => {
+        active = false;
+      };
     }
     setLoading(true);
     const read = async (paths: string[]): Promise<FactoryDocument | null> => {
@@ -103,7 +142,12 @@ export function FactoryProvider({ children }: { children: ReactNode }) {
       try {
         return { path, raw, contract: parseContract(raw).contract, error: null };
       } catch (reason) {
-        return { path, raw, contract: null, error: reason instanceof Error ? reason.message : String(reason) };
+        return {
+          path,
+          raw,
+          contract: null,
+          error: reason instanceof Error ? reason.message : String(reason),
+        };
       }
     };
     void Promise.all([read(DESIRED_PATHS), read(REPORTED_PATHS)])
@@ -115,22 +159,63 @@ export function FactoryProvider({ children }: { children: ReactNode }) {
       .catch((reason) => {
         if (active) setError(reason instanceof Error ? reason.message : String(reason));
       })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [project, fileSet, workspace.readFile, nonce]);
 
   const desiredFiles = useMemo(() => desiredPaths(desired?.contract ?? null), [desired]);
   const changes = useMemo(
-    () => calculateDiscrepancies(desired?.contract ?? null, reported?.contract ?? null, actualFiles, Boolean(project)),
+    () =>
+      calculateDiscrepancies(
+        desired?.contract ?? null,
+        reported?.contract ?? null,
+        actualFiles,
+        Boolean(project),
+      ),
     [desired, reported, actualFiles, project],
   );
   const drafts = useMemo(() => assembleIssueDrafts(changes), [changes]);
-  const validation = useMemo(() => desired?.contract ? validateContract(desired.contract) : [], [desired]);
+  const validation = useMemo(
+    () => (desired?.contract ? validateContract(desired.contract) : []),
+    [desired],
+  );
 
-  const value = useMemo<FactoryState>(() => ({
-    concern, setConcern, selectedPath, selectPath, desired, reported, desiredFiles, actualFiles, changes, drafts,
-    validation, loading, error, refresh,
-  }), [concern, selectedPath, desired, reported, desiredFiles, actualFiles, changes, drafts, validation, loading, error, refresh]);
+  const value = useMemo<FactoryState>(
+    () => ({
+      concern,
+      setConcern,
+      selectedPath,
+      selectPath,
+      desired,
+      reported,
+      desiredFiles,
+      actualFiles,
+      changes,
+      drafts,
+      validation,
+      loading,
+      error,
+      refresh,
+    }),
+    [
+      concern,
+      selectedPath,
+      desired,
+      reported,
+      desiredFiles,
+      actualFiles,
+      changes,
+      drafts,
+      validation,
+      loading,
+      error,
+      refresh,
+    ],
+  );
 
   return <FactoryContext.Provider value={value}>{children}</FactoryContext.Provider>;
 }
