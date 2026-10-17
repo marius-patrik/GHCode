@@ -28,10 +28,12 @@ The factory is integrated into the GHCode workbench, not an independent applicat
 
 Source-owned `PRD.md` defines the desired contract, while `ARCHITECTURE.md` describes reported implementation. The GitHub tree supplies actual file-path evidence; absence from the architecture document is not treated as proof that code is missing. Discrepancies can become reviewed GitHub issue drafts.
 
-### Pull-request previews
+### Pull-request previews — GitHub Pages
 
-Opening or updating a same-repository PR triggers `.github/workflows/pr-preview.yml`. A successful build publishes a dedicated **read-only** review page to the isolated `pr-previews` branch, exposes its URL as a GitHub deployment environment, and updates a sticky PR comment. Preview data is served by raw.githack.com, a third-party caching proxy, because GitHub Pages' native PR previews are not publicly available with the repository's existing Actions-based production deployment. This does not change the production Pages site or require Vercel credentials.
+The PR workflow uses the same staged-snapshot pattern as BoardGamesWithQuests. Each PR builds from its own head, stages its site under `gh-pages/pr-N/`, and uses **GitHub Pages Actions** to deploy a complete artifact assembled from the validated production snapshot and all open PR previews. A deployment is marked successful only after the Pages URL serves HTML. The full site is not rebuilt from `main` when a PR changes.
 
-**Never sign into GitHub on the preview origin.** The preview build prohibits GitHub credentials because raw.githack.com is a shared origin. Authenticate only on an approved first-party GHCode deployment. Each preview is removed when its PR closes, without affecting the production site or other PRs.
+A PR preview is available at `https://marius-patrik.github.io/GHCode/pr-N/`. The workflow publishes the URL as a GitHub deployment and in the PR conversation. Closing a PR removes its snapshot and deactivates its deployment.
 
-The preview URL for PR #N is `https://raw.githack.com/marius-patrik/GHCode/pr-previews/pr-N/index.html`. The review host may show an initial confirmation page. Use the stable URL in the PR's deployment/status section or its conversation comment. The canonical source remains the PR branch; do not commit compiled HTML to source branches.
+Production continues to be built from validated `main` and staged separately. The main CI workflow uses the same assembler to avoid replacing existing PR previews. Both publishers use shared serialization; previews do not replace production files. No third-party preview mirror or Vercel project is involved.
+
+Authentication is disabled within PR preview paths. Sign in on the first-party production root only. Compiled files are stored on the dedicated `gh-pages` staging branch; feature branches contain source code only.
