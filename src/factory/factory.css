@@ -145,3 +145,5 @@
 @media (prefers-reduced-motion: reduce) {
   .factory-workspace * { scroll-behavior: auto; transition-duration: 0ms !important; }
 }
+
+.factory-home { position: absolute; inset: 0; z-index: 10; width: 100%; height: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
