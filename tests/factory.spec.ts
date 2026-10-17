@@ -51,13 +51,16 @@ test("undocumented architecture is unverified, never classified as missing imple
   expect(assembleIssueDrafts(delta)[0].body).toContain("Confirm discrepancies before implementation");
 });
 
-test("factory opens inside the existing Dockview launcher rather than as a second application", async ({ page }) => {
+test("global factory perspectives share the GHCode workbench", async ({ page }) => {
   await page.goto("/");
-  const launcher = page.locator('[data-workbench-surface="main"]').getByRole("button", { name: "Open tab launcher" }).last();
-  await launcher.click();
-  await page.getByRole("menuitem", { name: "Software Factory" }).click();
-  await expect(page.locator('[data-workbench-surface="main"] .dv-tab').filter({ hasText: "Software Factory" })).toBeVisible();
-  await expect(page.getByText("Open a GitHub workspace to inspect its source")).toBeVisible();
-  await page.getByRole("button", { name: "Open repository" }).click();
-  await expect(page.getByRole("textbox", { name: "Repository" })).toBeVisible();
+  const rail = page.getByRole("navigation", { name: "Workspace perspectives" });
+  await expect(rail).toBeVisible();
+  for (const concern of ["Overview", "Specification", "Delta", "Repository"]) {
+    const control = rail.getByRole("button", { name: concern, exact: true });
+    await control.click();
+    await expect(control).toHaveAttribute("aria-pressed", "true");
+  }
+  await expect(page.locator('[data-workbench-surface="main"] .dv-tab').filter({ hasText: "Software Factory" })).toHaveCount(0);
+  await page.locator(".empty-workbench").getByRole("button", { name: "Open GitHub Repository" }).click();
+  await expect(page.getByRole("dialog", { name: "Open GitHub repository" })).toBeVisible();
 });
