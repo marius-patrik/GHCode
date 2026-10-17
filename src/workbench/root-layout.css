@@ -206,3 +206,28 @@
 .factory-activity-rail button:hover { background: var(--surface-2); color: var(--text); }
 .factory-activity-rail button.active { background: var(--surface-2); color: var(--text); box-shadow: inset 2px 0 0 var(--text); }
 .factory-activity-rail button:focus-visible { outline: 2px solid var(--text); outline-offset: -2px; }
+
+/* The shell owns six columns. Every region has a stable grid slot even when hidden. */
+.workbench-center {
+  grid-template-rows: minmax(0, 1fr);
+  isolation: isolate;
+}
+.factory-activity-rail { grid-column: 1; grid-row: 1; z-index: 2; }
+.root-primary { grid-column: 2; grid-row: 1; }
+.root-resizer-primary { grid-column: 3; grid-row: 1; }
+.root-main { grid-column: 4; grid-row: 1; position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+.root-resizer-secondary { grid-column: 5; grid-row: 1; }
+.root-secondary { grid-column: 6; grid-row: 1; }
+.root-resizer { z-index: 1; }
+.primary-collapsed .root-main, .secondary-collapsed .root-main { visibility: visible; pointer-events: auto; }
+.workbench-surface-main { min-width: 0; min-height: 0; }
+.workbench-dockview-host-empty { display: none !important; }
+:root { --layer-surface: 0; --layer-resizer: 1; --layer-popover: 100; --layer-modal: 200; }
+[data-radix-popper-content-wrapper] { z-index: var(--layer-popover) !important; }
+.workspace-dialog-backdrop { z-index: var(--layer-modal); }
+.workbench-header { z-index: 3; }
+.workbench-statusbar { z-index: 2; }
+@media (max-width: 680px) {
+  .workbench-center { grid-template-columns: 42px var(--primary-size) var(--root-resizer-size) minmax(0,1fr) 0 0; }
+  .workbench-shell.primary-collapsed .workbench-center { grid-template-columns: 42px 0 0 minmax(0,1fr) 0 0; }
+}
