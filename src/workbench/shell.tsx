@@ -170,6 +170,7 @@ export function WorkbenchShell() {
   const omnibarRef = useRef<OmnibarControl>(null);
   const activeSurfaceRef = useRef<WorkbenchSurface | null>(null);
   const [activeTab, setActiveTab] = useState<WorkbenchTab | null>(null);
+  const [activeMainTab, setActiveMainTab] = useState<WorkbenchTab | null>(null);
 
   const persist = useCallback(
     (
@@ -223,6 +224,7 @@ export function WorkbenchShell() {
 
   const handleActiveTabChange = useCallback(
     (surface: WorkbenchSurface, tab: WorkbenchTab | null) => {
+      if (surface === "main") setActiveMainTab(tab);
       if (surface === "main" && tab && isFactoryPerspective(tab.type)) {
         factory.setConcern(tab.type);
       }
@@ -761,8 +763,8 @@ export function WorkbenchShell() {
                   <button
                     type="button"
                     aria-label={label}
-                    aria-pressed={activeTab?.type === concern}
-                    className={activeTab?.type === concern ? "active" : ""}
+                    aria-pressed={activeMainTab?.type === concern}
+                    className={activeMainTab?.type === concern ? "active" : ""}
                     onClick={() => openTab(concern, "main")}
                   >
                     <Icon size={17} />
