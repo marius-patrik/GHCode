@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   BookOpen, CircleAlert, Download, ExternalLink,
@@ -54,7 +54,7 @@ export function FactoryTab({
   const runtime = useWorkbenchRuntime();
   const reducedMotion = useReducedMotion();
   const currentRepo = workspace.workspace;
-  const { desired, reported, loading: reading, error: readError, desiredFiles: declaredFiles, actualFiles: observedFiles, changes: delta, drafts, validation, selectedPath, selectPath } = factory;
+  const { desired, reported, loading: reading, error: readError, desiredFiles: declaredFiles, actualFiles: observedFiles, changes: delta, drafts, validation, selectedPath } = factory;
   const concern = factory.concern;
   const [search, setSearch] = useState("");
   const [registry, setRegistry] = useState("requirements");
