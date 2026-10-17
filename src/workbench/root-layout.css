@@ -236,6 +236,9 @@
 .root-main > .factory-home { position: absolute; inset: 0; z-index: 1; display: none; }
 .root-main > .workbench-surface-main { position: absolute; inset: 0; z-index: 0; }
 .root-main.perspective-visible > .factory-home { display: flex; }
-.root-main.perspective-visible > .workbench-surface-main { visibility: hidden; pointer-events: none; }
+.root-main.perspective-visible > .workbench-surface-main { pointer-events: none; }
+.workbench-tab-dragging .root-main > .factory-home { pointer-events: none; opacity: 0; }
+.workbench-tab-dragging .root-main > .workbench-surface-main { pointer-events: auto; }
+
 .factory-rail-separator { width: 24px; border-top: 1px solid var(--toolbar-border); margin: 8px 0 3px; }
 .factory-activity-rail button:disabled { opacity: .4; cursor: default; }
