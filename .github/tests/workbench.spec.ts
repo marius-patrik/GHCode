@@ -161,7 +161,9 @@ test("tabs move across root Dockview surfaces, existing groups, splits, and relo
   await dragTab(page, "main", "Explorer", "secondary");
   await dragTab(page, "secondary", "Explorer", "panel");
 
-  await surface(page, "main").getByRole("button", { name: "Browser", exact: true }).click();
+  const omnibar = page.getByLabel("Workbench omnibar");
+  await omnibar.fill(">Open Browser");
+  await omnibar.press("Enter");
   await expect(tab(page, "main", "Browser")).toBeVisible();
 
   await tab(page, "panel", "Explorer").dragTo(tab(page, "main", "Browser"), { force: true });
