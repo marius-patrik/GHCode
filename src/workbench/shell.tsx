@@ -8,10 +8,11 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { BookOpen, GitBranch, GitCompareArrows, LayoutDashboard, PanelBottom, PanelLeft, PanelRight, UserRound } from "lucide-react";
+import { BookOpen, GitBranch, GitCompareArrows, LayoutDashboard, FileCode2, PanelBottom, PanelLeft, PanelRight, UserRound } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { isPublicReviewPreview } from "@/github/auth";
 import { useFactory, type FactoryConcern } from "@/factory/context";
+import { FactoryWorkspaceView } from "@/factory/workspace-view";
 import { useWorkbenchSettings, type AppearanceMode } from "@/settings";
 import { useWorkspace } from "@/workspace/context";
 import { useWorkbenchShortcuts } from "./commands";
@@ -147,6 +148,8 @@ export function WorkbenchShell() {
   const omnibarRef = useRef<OmnibarControl>(null);
   const activeSurfaceRef = useRef<WorkbenchSurface | null>(null);
   const [activeTab, setActiveTab] = useState<WorkbenchTab | null>(null);
+  const [showPerspective, setShowPerspective] = useState(true);
+  const currentMainPanelRef = useRef<string | null>(null);
 
   const persist = useCallback((theme: AppearanceMode = settings.theme, nextVisibility = visibility, nextSizes = sizesRef.current) => {
     const state: PersistedWorkbench = {
@@ -179,6 +182,11 @@ export function WorkbenchShell() {
   }, []);
 
   const handleActiveTabChange = useCallback((surface: WorkbenchSurface, tab: WorkbenchTab | null) => {
+    if (surface === "main" && tab && currentMainPanelRef.current !== tab.id) {
+      currentMainPanelRef.current = tab.id;
+      setShowPerspective(false);
+    }
+    if (surface === "main" && !tab) currentMainPanelRef.current = null;
     if (tab) {
       activeSurfaceRef.current = surface;
       setActiveTab(tab);
@@ -226,6 +234,7 @@ export function WorkbenchShell() {
               (resource && existing.type === type && existing.resource === resource))
           ) {
             if (surface !== "main") setSurfaceVisible(surface, true);
+            else setShowPerspective(false);
             panel.api?.setActive?.();
             return;
           }
@@ -238,6 +247,7 @@ export function WorkbenchShell() {
     const title = resource ? resource.split("/").at(-1) || definition.title : undefined;
     const tab = createWorkbenchTab(type, { state, resource, title });
     if (surface !== "main") setSurfaceVisible(surface, true);
+    else setShowPerspective(false);
     const panel = api.addPanel({ id: tab.id, component: "workbench", tabComponent: "workbenchTab", title: tab.title, params: tab, renderer: "always" });
     panel.api?.setActive?.();
     persist();
@@ -589,12 +599,23 @@ export function WorkbenchShell() {
                     aria-label={label}
                     aria-pressed={factory.concern === concern}
                     className={factory.concern === concern ? "active" : ""}
-                    onClick={() => { factory.setConcern(concern as FactoryConcern); }}
+                    onClick={() => { factory.setConcern(concern as FactoryConcern); setShowPerspective(true); }}
                   ><Icon size={17} /></button>
                 </TooltipTrigger>
                 <TooltipContent side="right">{label}</TooltipContent>
               </Tooltip>
             ))}
+            <div className="factory-rail-separator" aria-hidden="true" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" aria-label="Open editors" aria-pressed={!showPerspective}
+                  className={!showPerspective ? "active" : ""}
+                  onClick={() => setShowPerspective(false)}
+                  disabled={!(apis.current.get("main")?.panels?.length)}
+                ><FileCode2 size={17}/></button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Open editors</TooltipContent>
+            </Tooltip>
           </nav>
           <aside className="root-surface root-primary"><WorkbenchSurfaceView surface="primary" restoredLayout={initial.surfaces.primary.layout} defaultTabs={defaults.primary} onReady={registerSurface} onActiveTabChange={handleActiveTabChange} /></aside>
           <hr
@@ -605,7 +626,10 @@ export function WorkbenchShell() {
             onPointerDown={(event) => beginResize("primary", event)}
             onMouseDown={(event) => beginMouseResize("primary", event)}
           />
-          <main className="root-surface root-main"><WorkbenchSurfaceView surface="main" restoredLayout={initial.surfaces.main.layout} defaultTabs={defaults.main} onReady={registerSurface} onActiveTabChange={handleActiveTabChange} /></main>
+          <main className={`root-surface root-main${showPerspective ? " perspective-visible" : ""}`}>
+            <section className="factory-home" aria-label="Project workspace"><FactoryWorkspaceView /></section>
+            <WorkbenchSurfaceView surface="main" restoredLayout={initial.surfaces.main.layout} defaultTabs={defaults.main} onReady={registerSurface} onActiveTabChange={handleActiveTabChange} />
+          </main>
           <hr
             className="root-resizer root-resizer-column root-resizer-secondary"
             aria-label="Resize Secondary Sidebar"
