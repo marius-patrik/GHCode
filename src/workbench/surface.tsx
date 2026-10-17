@@ -8,7 +8,6 @@ import {
   type GetTabContextMenuItemsParams,
   type ReactContextMenuItemConfig,
 } from "dockview-react";
-import { EmptyWorkbench } from "./empty-workbench";
 import { LauncherButton } from "./launcher";
 import type { WorkbenchDropTarget, WorkbenchSurface, WorkbenchTab } from "./model";
 import { WorkbenchPanel } from "./registry";
@@ -315,7 +314,6 @@ export function WorkbenchSurfaceView({
         }}
         />
       </div>
-      {mainEmpty && <EmptyWorkbench />}
     </div>
   );
 }
