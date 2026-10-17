@@ -375,7 +375,11 @@ export function FactoryWorkspaceView() {
         </label>
       )}
       {selectedSource && (
-        <Button variant="outline" size="sm" onClick={() => openEditor(canonicalEditPath(selectedSource.path))}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => openEditor(canonicalEditPath(selectedSource.path))}
+        >
           <FileCode2 size={13} /> Edit source
         </Button>
       )}
@@ -398,9 +402,7 @@ export function FactoryWorkspaceView() {
           </div>
           {documentActions}
         </header>
-        <div className="factory-view-content">
-          {selectedFile ? filesView : contractsView}
-        </div>
+        <div className="factory-view-content">{selectedFile ? filesView : contractsView}</div>
       </section>
     ) : concern === "repository" ? (
       <section className="factory-view" aria-label="Repository architecture">
@@ -413,11 +415,18 @@ export function FactoryWorkspaceView() {
           {documentActions}
         </header>
         <div className="factory-view-content">
-          {selectedFile ? filesView : reported?.contract ? contractsView : (
+          {selectedFile ? (
+            filesView
+          ) : reported?.contract ? (
+            contractsView
+          ) : (
             <div className="factory-no-selection">
               <FolderTree size={24} />
               <strong>{observedFiles.length} repository paths</strong>
-              <p>Select a file in the native Explorer to inspect source evidence. Architecture documentation is optional and never substituted for code.</p>
+              <p>
+                Select a file in the native Explorer to inspect source evidence. Architecture
+                documentation is optional and never substituted for code.
+              </p>
             </div>
           )}
         </div>
@@ -428,7 +437,9 @@ export function FactoryWorkspaceView() {
           <div>
             <span className="factory-view-eyebrow">EVIDENCE REVIEW</span>
             <h1>Delta</h1>
-            <p>{delta.length} discrepancies · {drafts.length} reviewable issue drafts</p>
+            <p>
+              {delta.length} discrepancies · {drafts.length} reviewable issue drafts
+            </p>
           </div>
           <Button variant="outline" size="sm" onClick={() => changeConcern("specification")}>
             <BookOpen size={13} /> Inspect target
@@ -440,57 +451,110 @@ export function FactoryWorkspaceView() {
               <strong>Differences</strong>
               <span>{delta.length}</span>
             </div>
-            {delta.length ? delta.map((finding) => (
-              <button
-                type="button"
-                className={`factory-delta-row${finding.path === selectedFile ? " selected" : ""}`}
-                key={finding.id}
-                onClick={() => finding.path ? factory.selectPath(finding.path) : undefined}
-              >
-                <Status tone={finding.status === "missing" ? "bad" : "warn"}>{finding.status}</Status>
-                <strong>{finding.label}</strong>
-                <span>{finding.explanation}</span>
-              </button>
-            )) : (
+            {delta.length ? (
+              delta.map((finding) => (
+                <button
+                  type="button"
+                  className={`factory-delta-row${finding.path === selectedFile ? " selected" : ""}`}
+                  key={finding.id}
+                  onClick={() => (finding.path ? factory.selectPath(finding.path) : undefined)}
+                >
+                  <Status tone={finding.status === "missing" ? "bad" : "warn"}>
+                    {finding.status}
+                  </Status>
+                  <strong>{finding.label}</strong>
+                  <span>{finding.explanation}</span>
+                </button>
+              ))
+            ) : (
               <p className="factory-empty">
-                No discrepancies are supported by the loaded documents and repository tree.
-                This does not assert that implementation is complete.
+                No discrepancies are supported by the loaded documents and repository tree. This
+                does not assert that implementation is complete.
               </p>
             )}
-            {selectedFile && (
-              <div className="factory-delta-inspector">{filesView}</div>
-            )}
+            {selectedFile && <div className="factory-delta-inspector">{filesView}</div>}
           </section>
-          <section className="factory-delta-drafts" aria-label="Issue drafts">{issuesView}</section>
+          <section className="factory-delta-drafts" aria-label="Issue drafts">
+            {issuesView}
+          </section>
         </div>
       </section>
     );
 
   return (
     <div className="factory-workspace">
-      {readError && <div role="alert" className="factory-error"><CircleAlert size={14}/>{readError}</div>}
-      {reading && <div className="factory-loading" role="status">Reading repository contracts…</div>}
+      {readError && (
+        <div role="alert" className="factory-error">
+          <CircleAlert size={14} />
+          {readError}
+        </div>
+      )}
+      {reading && (
+        <div className="factory-loading" role="status">
+          Reading repository contracts…
+        </div>
+      )}
       {concern === "overview" ? (
         <div className="factory-overview">
           <span className="factory-view-eyebrow">PROJECT WORKSPACE</span>
           <h1>{currentRepo.repository.fullName}</h1>
-          <p>Desired specification, documented architecture and actual repository files share one GitHub revision and workbench.</p>
+          <p>
+            Desired specification, documented architecture and actual repository files share one
+            GitHub revision and workbench.
+          </p>
           <div className="factory-metrics">
-            <div><strong>{registryRecords(target, "requirements").length}</strong><span>Requirements</span></div>
-            <div><strong>{observedFiles.filter((file) => file.type === "file").length}</strong><span>Observed files</span></div>
-            <div><strong>{delta.length}</strong><span>Discrepancies</span></div>
-            <div><strong>{validation.length}</strong><span>Contract errors</span></div>
+            <div>
+              <strong>{registryRecords(target, "requirements").length}</strong>
+              <span>Requirements</span>
+            </div>
+            <div>
+              <strong>{observedFiles.filter((file) => file.type === "file").length}</strong>
+              <span>Observed files</span>
+            </div>
+            <div>
+              <strong>{delta.length}</strong>
+              <span>Discrepancies</span>
+            </div>
+            <div>
+              <strong>{validation.length}</strong>
+              <span>Contract errors</span>
+            </div>
           </div>
           <div className="factory-evidence">
-            <div><Status tone={desired?.contract ? "good" : "warn"}>{desired?.contract ? "Parsed" : "Unavailable"}</Status><strong>Specification</strong><span>{desired?.path ?? "No project specification"}</span></div>
-            <div><Status tone={reported?.contract ? "good" : "warn"}>{reported?.contract ? "Parsed" : "Unavailable"}</Status><strong>Architecture</strong><span>{reported?.path ?? "No architecture evidence"}</span></div>
-            <div><Status tone="good">Revision scoped</Status><strong>Source tree</strong><span>{currentRepo.treeSha.slice(0, 12)}</span></div>
+            <div>
+              <Status tone={desired?.contract ? "good" : "warn"}>
+                {desired?.contract ? "Parsed" : "Unavailable"}
+              </Status>
+              <strong>Specification</strong>
+              <span>{desired?.path ?? "No project specification"}</span>
+            </div>
+            <div>
+              <Status tone={reported?.contract ? "good" : "warn"}>
+                {reported?.contract ? "Parsed" : "Unavailable"}
+              </Status>
+              <strong>Architecture</strong>
+              <span>{reported?.path ?? "No architecture evidence"}</span>
+            </div>
+            <div>
+              <Status tone="good">Revision scoped</Status>
+              <strong>Source tree</strong>
+              <span>{currentRepo.treeSha.slice(0, 12)}</span>
+            </div>
           </div>
-          {validation.map((error) => <p className="factory-error" key={error}><CircleAlert size={13}/>{error}</p>)}
+          {validation.map((error) => (
+            <p className="factory-error" key={error}>
+              <CircleAlert size={13} />
+              {error}
+            </p>
+          ))}
           <div className="factory-actions">
             <Button onClick={() => changeConcern("specification")}>Open specification</Button>
-            <Button variant="outline" onClick={() => changeConcern("delta")}>Review discrepancies</Button>
-            <Button variant="outline" onClick={() => changeConcern("repository")}>Inspect repository</Button>
+            <Button variant="outline" onClick={() => changeConcern("delta")}>
+              Review discrepancies
+            </Button>
+            <Button variant="outline" onClick={() => changeConcern("repository")}>
+              Inspect repository
+            </Button>
           </div>
         </div>
       ) : (
