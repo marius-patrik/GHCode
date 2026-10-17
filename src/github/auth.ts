@@ -1,3 +1,8 @@
+/** Public PR builds use a shared, third-party preview origin. Credentials are prohibited there. */
+export function isPublicReviewPreview(): boolean {
+  return typeof window !== "undefined" && window.location.hostname === "raw.githack.com";
+}
+
 const TOKEN_KEY = "workbench-github-token";
 const AUTH_TRANSACTION_KEY = "workbench-github-auth-transaction";
 const AUTH_RESULT_KEY = "workbench-github-auth-result";
@@ -60,6 +65,7 @@ function readCredential(): GithubCredential | null {
 }
 
 export function getGithubToken() {
+  if (isPublicReviewPreview()) return null;
   const credential = readCredential();
   if (!credential) return null;
   if (credential.expiresAt && credential.expiresAt <= Date.now()) {
@@ -71,6 +77,7 @@ export function getGithubToken() {
 }
 
 export function setGithubToken(token: string, expiresAt?: number) {
+  if (isPublicReviewPreview()) throw new Error("GitHub authentication is disabled on public review previews. Open the official site to sign in.");
   const value = token.trim();
   if (!value) throw new Error("GitHub credential cannot be empty.");
   const existing = readCredential();
@@ -100,6 +107,7 @@ export function getGithubAuthResult(): GithubAuthResult {
 }
 
 export function getGithubAuthConfiguration(): GithubAuthConfiguration {
+  if (isPublicReviewPreview()) return { clientId: "", brokerUrl: "", configured: false };
   const clientId = import.meta.env.PUBLIC_GITHUB_OAUTH_CLIENT_ID?.trim() ?? "";
   const brokerUrl = import.meta.env.PUBLIC_GITHUB_AUTH_BROKER_URL?.trim() ?? "";
   return { clientId, brokerUrl, configured: Boolean(clientId && brokerUrl) };
@@ -153,6 +161,7 @@ export function hasGithubAuthCallback() {
 }
 
 export async function beginGithubSignIn() {
+  if (isPublicReviewPreview()) throw new Error("Sign-in is disabled on shared-origin PR previews.");
   const config = getGithubAuthConfiguration();
   if (!config.configured) throw new Error("GitHub sign-in is not configured for this deployment.");
 
