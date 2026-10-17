@@ -10,6 +10,7 @@ import {
 } from "react";
 import { BookOpen, GitBranch, GitCompareArrows, LayoutDashboard, PanelBottom, PanelLeft, PanelRight, UserRound } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { isPublicReviewPreview } from "@/github/auth";
 import { useFactory, type FactoryConcern } from "@/factory/context";
 import { useWorkbenchSettings, type AppearanceMode } from "@/settings";
 import { useWorkspace } from "@/workspace/context";
@@ -563,12 +564,13 @@ export function WorkbenchShell() {
           <div className="shell-actions">
             <button
               type="button"
+              disabled={isPublicReviewPreview()}
               className="account-placeholder"
               onClick={() => workspace.user ? workspace.signOut() : workspace.setDialogOpen(true)}
               title={workspace.user ? "Sign out" : "Sign in with GitHub"}
             >
               {workspace.user ? <img src={workspace.user.avatar_url} alt="" /> : <UserRound size={14} />}
-              <span>{workspace.user?.login || "Sign in"}</span>
+              <span>{isPublicReviewPreview() ? "Public preview · read only" : workspace.user?.login || "Sign in"}</span>
             </button>
           </div>
         </header>
