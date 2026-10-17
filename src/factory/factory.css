@@ -7,7 +7,7 @@
   min-height: 0;
   min-width: 0;
   color: var(--text);
-  background: var(--background, var(--surface));
+  background: var(--bg);
   font-size: 12px;
 }
 .factory-workspace * { box-sizing: border-box; }
@@ -19,7 +19,7 @@
   min-width: 0;
   border-bottom: 1px solid var(--toolbar-border);
 }
-.factory-header { min-height: 44px; padding: 0 12px; justify-content: space-between; }
+
 .factory-project { min-width: 0; display: flex; align-items: center; gap: 9px; }
 .factory-project strong { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .factory-project > span { font-size: 10px; color: var(--muted); white-space: nowrap; }
@@ -113,8 +113,8 @@
 .factory-issue-heading { display: flex; align-items: start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .factory-issue-heading > div { min-width: 0; display: grid; gap: 4px; }
 .factory-issue-heading span:not(.factory-status) { color: var(--muted); font-size: 10px; }
-.factory-issue textarea { width: 100%; min-height: 160px; resize: vertical; border: 1px solid var(--toolbar-border); border-radius: 5px; background: var(--background, var(--surface)); color: var(--text); padding: 9px; font: 11px/1.5 ui-monospace, monospace; }
-.factory-footer { margin-top: auto; border-top: 1px solid var(--toolbar-border); border-bottom: none; padding: 5px 10px; justify-content: space-between; gap: 10px; font-size: 10px; color: var(--muted); }
+.factory-issue textarea { width: 100%; min-height: 160px; resize: vertical; border: 1px solid var(--toolbar-border); border-radius: 5px; background: var(--bg); color: var(--text); padding: 9px; font: 11px/1.5 ui-monospace, monospace; }
+
 .factory-overview { overflow: auto; min-height: 0; padding: 18px; }
 .factory-overview h2 { font-size: 17px; font-weight: 600; margin: 0 0 8px; }
 .factory-overview > p { max-width: 620px; line-height: 1.6; color: var(--muted); }
@@ -128,7 +128,7 @@
 .factory-evidence strong { min-width: 110px; }
 .factory-workspace button:focus-visible, .factory-workspace input:focus-visible, .factory-workspace textarea:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 @media (max-width: 680px) {
-  .factory-header { padding: 0 8px; }
+  
   .factory-project { display: grid; gap: 1px; }
   .factory-concerns { justify-content: space-around; padding: 4px; }
   .factory-concern { flex: 1; gap: 4px; font-size: 10px; padding: 7px 3px; }
@@ -146,4 +146,11 @@
   .factory-workspace * { scroll-behavior: auto; transition-duration: 0ms !important; }
 }
 
-.factory-home { position: absolute; inset: 0; z-index: 10; width: 100%; height: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+.factory-home { position: absolute; inset: 0; width: 100%; height: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+
+/* Workbench chrome is authoritative; the perspective is content, not a second shell. */
+.factory-workspace, .factory-start { background: var(--bg); border: 0; }
+.factory-main { display: flex; flex-direction: column; min-height: 0; }
+.factory-file-inspector { flex: 1; }
+.factory-panes { background: var(--bg); }
+.factory-activity-rail button { transition: background-color .12s ease, color .12s ease; }
