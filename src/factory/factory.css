@@ -591,3 +591,42 @@
     background-color 0.12s ease,
     color 0.12s ease;
 }
+
+/* Native perspectives use the host theme and a single outer workbench chrome. */
+.factory-view { display:flex; flex-direction:column; flex:1; width:100%; min-height:0; min-width:0; overflow:hidden; }
+.factory-view-head { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; flex:0 0 auto; padding:18px 20px 15px; border-bottom:1px solid var(--toolbar-border); background:var(--bg); }
+.factory-view-head > div:first-child { min-width:0; flex:1 1 240px; }
+.factory-view-head h1, .factory-overview h1 { margin:4px 0 6px; font-size:20px; font-weight:600; line-height:1.25; overflow-wrap:anywhere; }
+.factory-view-head p { color:var(--muted); margin:0; font-size:11px; overflow-wrap:anywhere; }
+.factory-view-eyebrow { color:var(--muted); font-size:10px; letter-spacing:.1em; font-weight:700; }
+.factory-view-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; min-width:0; }
+.factory-view-content { flex:1; min-height:0; min-width:0; overflow:hidden; }
+.factory-filter { display:flex; align-items:center; width:min(210px,100%); min-width:130px; border:1px solid var(--toolbar-border); border-radius:6px; padding:4px 8px; background:var(--surface); }
+.factory-filter input { border:0; background:transparent; min-width:0; width:100%; font:inherit; color:var(--text); outline-offset:4px; }
+.factory-delta-layout { display:grid; grid-template-columns:minmax(230px, 44%) minmax(0,1fr); }
+.factory-delta-findings { overflow:auto; border-right:1px solid var(--toolbar-border); min-height:0; min-width:0; }
+.factory-delta-drafts { min-width:0; min-height:0; overflow:auto; }
+.factory-delta-findings > .factory-pane-heading { position:sticky; top:0; z-index:1; background:var(--bg); }
+.factory-delta-row { display:flex; flex-wrap:wrap; gap:7px 9px; align-items:center; width:100%; padding:14px; text-align:left; cursor:pointer; background:transparent; border:0; border-bottom:1px solid var(--toolbar-border); color:var(--text); font:inherit; }
+.factory-delta-row:hover, .factory-delta-row.selected { background:var(--surface); }
+.factory-delta-row strong { flex:1 1 120px; overflow-wrap:anywhere; }
+.factory-delta-row > span:last-child { flex:0 0 100%; font-size:11px; line-height:1.5; color:var(--muted); }
+.factory-delta-inspector { border-top:1px solid var(--toolbar-border); min-height:240px; }
+.factory-delta-inspector .factory-inspector { overflow:visible; padding:14px; }
+.factory-loading { padding:6px 14px; background:var(--surface-2); color:var(--muted); border-bottom:1px solid var(--toolbar-border); flex-shrink:0; font-size:11px; }
+.factory-overview { padding:30px clamp(18px,4vw,54px); overflow:auto; width:100%; max-width:none; }
+.factory-overview > p { max-width:700px; }
+.factory-overview .factory-metrics { max-width:1050px; }
+.factory-overview .factory-evidence { max-width:1050px; }
+.factory-main { width:100%; }
+@media(max-width:860px) {
+ .factory-view-head { padding:12px 14px; }
+ .factory-delta-layout { grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(140px,45%) minmax(0,1fr); }
+ .factory-delta-findings { border-right:0; border-bottom:1px solid var(--toolbar-border); }
+}
+@media(max-width:480px) {
+ .factory-view-head h1 { font-size:17px; }
+ .factory-view-actions { width:100%; }
+ .factory-filter { flex:1; }
+ .factory-overview { padding:18px; }
+}
