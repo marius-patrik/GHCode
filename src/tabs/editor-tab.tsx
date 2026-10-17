@@ -302,7 +302,7 @@ export function EditorTab({
               factory.setConcern(
                 path === ".agents/ARCHITECTURE.md" ? "repository" : "specification",
               );
-              runtime.showPerspective();
+              runtime.openTab(path === ".agents/ARCHITECTURE.md" ? "repository" : "specification", "main");
             }}
           >
             Open canonical sources
