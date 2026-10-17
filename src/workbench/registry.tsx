@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { SettingsView } from "@/settings-view";
+import { FactoryTab } from "@/tabs/factory-tab";
 import { BrowserTab } from "@/tabs/browser-tab";
 import { DocumentTab } from "@/tabs/document-tab";
 import { DiffTab } from "@/tabs/diff-tab";
@@ -35,6 +36,7 @@ export type TabDefinition = {
 };
 
 const DEFINITIONS: TabDefinition[] = [
+  { type: "factory", title: "Software Factory", icon: "LayoutDashboardIcon", defaultSurface: "main", singleton: true, initialState: () => ({ concern: "specification", pane: "files" }) },
   { type: "editor", title: "Editor", icon: "FileCode2Icon", defaultSurface: "main", initialState: () => ({ value: "", language: "plaintext", path: "Untitled", renderer: "editor", review: false, compare: "none", compareTarget: "", representation: "auto" }) },
   { type: "browser", title: "Browser", icon: "GlobeIcon", defaultSurface: "main", initialState: () => ({ url: "about:blank", history: ["about:blank"], historyIndex: 0 }) },
   { type: "explorer", title: "Explorer", icon: "FilesIcon", defaultSurface: "primary", singleton: true },
@@ -98,6 +100,7 @@ function RegisteredTabContent({ tab }: { tab: WorkbenchTab }): ReactNode {
   const runtime = useWorkbenchRuntime();
   const updateState = (patch: Record<string, unknown>) => runtime.updateTabState(tab.id, patch);
   switch (tab.type) {
+    case "factory": return <FactoryTab tab={tab} updateState={updateState} />;
     case "editor": return <EditorTab tab={tab} theme={runtime.settings.theme} updateState={updateState} />;
     case "browser": return <BrowserTab tab={tab} updateState={updateState} />;
     case "explorer": return <ExplorerTab />;
