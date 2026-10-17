@@ -12,7 +12,7 @@
 }
 
 .primary-collapsed .workbench-center {
-  grid-template-columns: 0 0 minmax(0, 1fr) var(--root-resizer-size) var(--secondary-size);
+  grid-template-columns: 42px 0 0 minmax(0, 1fr) var(--root-resizer-size) var(--secondary-size);
 }
 
 .secondary-collapsed .workbench-center {
@@ -20,7 +20,7 @@
 }
 
 .primary-collapsed.secondary-collapsed .workbench-center {
-  grid-template-columns: 0 0 minmax(0, 1fr) 0 0;
+  grid-template-columns: 42px 0 0 minmax(0, 1fr) 0 0;
 }
 
 .root-primary,
