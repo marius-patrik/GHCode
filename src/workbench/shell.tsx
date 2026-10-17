@@ -433,7 +433,7 @@ export function WorkbenchShell() {
     let nextSize = session.startSize;
     if (session.kind === "primary") {
       const other = visibility.secondary ? effective.secondary : 0;
-      const maximum = Math.min(SIDEBAR_MAX, Math.max(0, viewport.width - MAIN_MIN_WIDTH - other - handles));
+      const maximum = Math.min(SIDEBAR_MAX, Math.max(0, viewport.width - 42 - MAIN_MIN_WIDTH - other - handles));
       nextSize = clamp(session.startSize + clientX - session.startX, Math.min(SIDEBAR_MIN, maximum), maximum);
     } else if (session.kind === "secondary") {
       const other = visibility.primary ? effective.primary : 0;
@@ -589,7 +589,7 @@ export function WorkbenchShell() {
                     aria-label={label}
                     aria-pressed={factory.concern === concern}
                     className={factory.concern === concern ? "active" : ""}
-                    onClick={() => { factory.setConcern(concern as FactoryConcern); setSurfaceVisible("primary", true); }}
+                    onClick={() => { factory.setConcern(concern as FactoryConcern); }}
                   ><Icon size={17} /></button>
                 </TooltipTrigger>
                 <TooltipContent side="right">{label}</TooltipContent>
@@ -636,8 +636,12 @@ export function WorkbenchShell() {
                 ].filter(Boolean).join(" · ")
               : "Workbench"}
           </span>
-          <span className="workbench-status-context" title={activeStatusLabel(activeTab)}>
-            {activeStatusLabel(activeTab)}
+          <span className="workbench-status-context" title={activeStatusLabel(activeTab) || factory.concern}>
+            {activeStatusLabel(activeTab) || [
+              factory.concern[0].toUpperCase() + factory.concern.slice(1),
+              factory.changes.length ? `${factory.changes.length} discrepancies` : "",
+              factory.selectedPath ?? "",
+            ].filter(Boolean).join(" · ")}
           </span>
           <div className="workbench-status-layout">
             <button type="button" aria-pressed={visibility.primary} onClick={() => toggleSurface("primary")} title="Toggle Primary Sidebar (Cmd/Ctrl+B)"><PanelLeft size={13} /></button>
