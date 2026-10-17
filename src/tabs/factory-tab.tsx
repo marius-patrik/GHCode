@@ -212,7 +212,7 @@ export function FactoryTab({
           <Button size="sm" variant="outline" onClick={() => downloadMarkdown(selectedDoc.path.split("/").at(-1) ?? "specification.md", selectedDoc.raw)}>
             <Download size={14}/> Export Markdown
           </Button>
-          {selectedDoc.contract && <Button size="sm" variant="outline" onClick={() => downloadMarkdown("compiled-" + selectedDoc.path.split("/").at(-1), compileContract(selectedDoc.contract, parseContract(selectedDoc.raw).prose))}>
+          {selectedDoc.contract && <Button size="sm" variant="outline" onClick={() => downloadMarkdown("compiled-" + selectedDoc.path.split("/").at(-1), compileContract(selectedDoc.contract!, parseContract(selectedDoc.raw).prose))}>
             Compile frontmatter
           </Button>}
         </div>
@@ -230,7 +230,7 @@ export function FactoryTab({
         <article className="factory-issue" key={draft.id}>
           <div className="factory-issue-heading">
             <div><strong>{draft.title}</strong><span>{draft.items.length} evidence-backed discrepancies</span></div>
-            {published[draft.id] ? <Status tone="good">Published #{published[draft.id]}</Status> : <Status>Draft</Status>}
+            {published[draft.id] ? <Status tone="good">{`Published #${published[draft.id]}`}</Status> : <Status>Draft</Status>}
           </div>
           <textarea aria-label={`Issue body: ${draft.title}`} value={editedIssueBodies[draft.id] ?? draft.body}
             onChange={(event) => setEditedIssueBodies((current) => ({ ...current, [draft.id]: event.target.value }))} />
