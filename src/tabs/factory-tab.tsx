@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
-  BookOpen, CircleAlert, CircleCheck, Diff, Download, ExternalLink, File,
+  BookOpen, CircleAlert, Diff, Download, ExternalLink, File,
   FileCode2, FileText, FolderTree, GitBranch, LayoutDashboard, Plus,
   RefreshCw, Search, Send, X,
 } from "lucide-react";
@@ -362,7 +362,7 @@ export function FactoryTab({
 
   if (!currentRepo) {
     return <div className="factory-start">
-      <FolderTree size={34}/>
+      <AnimatedIcon names={["FolderTreeIcon", "FileCode2Icon"]} />
       <h2>Software Factory</h2>
       <p>Open a GitHub workspace to inspect its source, contract and discrepancies. No example repository is substituted.</p>
       <Button onClick={() => workspace.setDialogOpen(true)}><Plus size={14}/> Open repository</Button>
