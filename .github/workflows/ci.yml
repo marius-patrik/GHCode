@@ -33,8 +33,11 @@ jobs:
     needs: check
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    concurrency:
+      group: ghcode-pages-staging
+      cancel-in-progress: false
     permissions:
-      contents: read
+      contents: write
     env:
       PUBLIC_GITHUB_OAUTH_CLIENT_ID: ${{ vars.WORKBENCH_OAUTH_CLIENT_ID }}
       PUBLIC_GITHUB_AUTH_BROKER_URL: ${{ vars.WORKBENCH_AUTH_BROKER_URL }}
@@ -52,81 +55,139 @@ jobs:
           name: ghcode-dist
           path: dist
           if-no-files-found: error
-      - uses: actions/configure-pages@v5
-      - name: Upload GitHub Pages deployment artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: dist
+      - name: Stage successful main without deleting PR snapshots
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh auth setup-git
+          stage="$RUNNER_TEMP/main-pages-staging"
+          mkdir -p "$stage"
+          cd "$stage"
+          git init -q
+          git remote add origin "https://github.com/$GITHUB_REPOSITORY.git"
+          git fetch --depth 1 origin gh-pages
+          git switch -C gh-pages FETCH_HEAD
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rsync -a --delete --exclude='.git/' --exclude='pr-*/' "$GITHUB_WORKSPACE/dist/" "$stage/"
+          test -s index.html
+          touch .nojekyll
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "pages(main): stage validated ${GITHUB_SHA:0:12}"
+            git push origin HEAD:gh-pages
+          fi
 
   release:
     name: Create GitHub release for main commit
     needs: package
     runs-on: ubuntu-latest
+    concurrency:
+      group: ghcode-release-main
+      cancel-in-progress: false
     permissions:
       contents: write
       pull-requests: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           name: ghcode-dist
           path: dist
-      - name: Publish next patch release
+      - name: Resolve immutable SemVer for validated main
+        id: version
+        run: |
+          set -euo pipefail
+          git fetch origin --tags
+          echo "tag=$(python3 .github/scripts/versioning.py)" >> "$GITHUB_OUTPUT"
+      - name: Publish or verify existing release on the exact main SHA
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
         run: |
+          set -euo pipefail
           test -s dist/index.html
-          cd dist
-          zip -q -r ../ghcode-site.zip .
-          cd ..
-          # Serial workflow concurrency makes patch-tag allocation deterministic.
-          PREVIOUS="$(gh release list --limit 100 --json tagName --jq '.[].tagName' | grep -E '^v[0-9]+[.][0-9]+[.][0-9]+$' | sort -V | tail -1 || true)"
-          if [[ -z "$PREVIOUS" ]]; then
-            TAG="v0.1.0"
+          (cd dist && zip -q -r ../ghcode-site.zip .)
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            existing="$(git rev-list -n 1 "$TAG")"
+            [ "$existing" = "$GITHUB_SHA" ] || { echo "::error::Immutable tag $TAG points to $existing"; exit 1; }
           else
-            IFS='.' read -r MAJOR MINOR PATCH <<< "${PREVIOUS#v}"
-            TAG="v${MAJOR}.${MINOR}.$((PATCH + 1))"
+            git tag "$TAG" "$GITHUB_SHA"
+            git push origin "refs/tags/$TAG"
           fi
-          gh release create "$TAG" ghcode-site.zip --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" ghcode-site.zip --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+          else
+            gh release view "$TAG" --json tagName,assets --jq '.assets[] | select(.name == "ghcode-site.zip") | .name' | grep -Fx 'ghcode-site.zip'
+          fi
+          gh release view "$TAG" --json tagName,url
 
   deploy:
-    name: Deploy Pages from Actions artifact
+    name: Deploy complete main and preview site with Pages Actions
     needs: package
     runs-on: ubuntu-latest
+    concurrency:
+      group: ghcode-pages-actions
+      cancel-in-progress: false
     permissions:
+      contents: read
+      pull-requests: read
+      deployments: write
       pages: write
       id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy GHCode
+      - name: Checkout trusted publication logic from main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Assemble independently staged main and open PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/pages-staging"
+          git init -q "$RUNNER_TEMP/staging-repo"
+          git -C "$RUNNER_TEMP/staging-repo" remote add origin "https://github.com/$GITHUB_REPOSITORY.git"
+          git -C "$RUNNER_TEMP/staging-repo" fetch --depth 1 origin gh-pages
+          git -C "$RUNNER_TEMP/staging-repo" archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/pages-staging"
+          open="$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" --jq '.[].number')"
+          mapfile -t prs < <(printf '%s\n' "$open" | sed '/^$/d')
+          python .github/scripts/assemble_pages.py --staging "$RUNNER_TEMP/pages-staging" --site site --open-prs "${prs[@]}"
+          test -s site/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Publish main and PR previews with GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-      - name: Verify GitHub Pages source and public response
+      - name: Verify public main and mark existing PR previews successful
         env:
           GH_TOKEN: ${{ github.token }}
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
-          echo "GitHub Pages configuration:"
-          if gh api "repos/$GITHUB_REPOSITORY/pages" --jq '{build_type, status, html_url, source}'; then
-            build_type="$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq '.build_type')"
-            if [[ "$build_type" != "workflow" ]]; then
-              echo "::error::Pages is still configured for branch publishing ($build_type). Change Settings > Pages > Build and deployment > Source to GitHub Actions."
-              exit 1
-            fi
-          else
-            echo "::warning::Unable to read Pages settings with GITHUB_TOKEN."
-          fi
-          for attempt in {1..9}; do
-            code="$(curl -sSL -o /tmp/ghcode-public-index -w '%{http_code}' --max-time 25 "$PAGE_URL" || true)"
-            echo "Public Pages HTTP status (attempt $attempt): $code"
-            if [[ "$code" == "200" ]] && grep -qi '<html' /tmp/ghcode-public-index; then
-              echo "GHCode is publicly readable at $PAGE_URL"
-              exit 0
-            fi
-            sleep 10
+          set -euo pipefail
+          for attempt in {1..10}; do
+            code="$(curl -sSL -o "$RUNNER_TEMP/index" -w '%{http_code}' --max-time 25 "$PAGE_URL" || true)"
+            [ "$code" = 200 ] && grep -qi '<html' "$RUNNER_TEMP/index" && break
+            sleep 8
           done
-          echo "::error::Deployment API succeeded, but the public GHCode homepage is not returning HTML over HTTP 200 at $PAGE_URL"
-          exit 1
+          [ "$code" = 200 ] && grep -qi '<html' "$RUNNER_TEMP/index" || exit 1
+          for preview in site/pr-*; do
+            [ -s "$preview/.preview-head" ] || continue
+            pr="${preview##*/pr-}"
+            [[ "$pr" =~ ^[0-9]+$ ]] || continue
+            recorded="$(cat "$preview/.preview-head")"
+            latest="$(gh pr view "$pr" --json headRefOid --jq .headRefOid 2>/dev/null || true)"
+            [ -n "$latest" ] && [ "$recorded" = "$latest" ] || continue
+            deployment="$(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=pr-$pr&per_page=100"               --jq ".[] | select(.sha == \"$recorded\") | .id" | head -n 1)"
+            [ -n "$deployment" ] || continue
+            gh api --method POST "repos/$GITHUB_REPOSITORY/deployments/$deployment/statuses"               -f state=success -f environment_url="${PAGE_URL%/}/pr-$pr/"               -f description="Published through GitHub Pages"
+          done
