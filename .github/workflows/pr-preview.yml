@@ -1,0 +1,131 @@
+name: PR Preview
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Validate and build PR preview
+    if: github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+      - name: Install
+        run: bun install
+      - name: Validate
+        run: bun run check
+      - name: Build a self-contained, anonymous review site
+        run: |
+          bun run build:standalone
+          test -s dist/index.html
+          if grep -Eiq '<script[^>]+src=|<link[^>]+rel="stylesheet"' dist/index.html; then
+            echo "::error::Preview HTML contains external JavaScript or CSS assets."
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr-preview-source
+          path: dist/index.html
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish link for this PR
+    needs: build
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && (github.event.action == 'closed' || needs.build.result == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    concurrency:
+      group: ghcode-pr-preview-publisher
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository for publishing
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Retrieve validated preview
+        if: github.event.action != 'closed'
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-preview-source
+          path: preview-payload
+      - name: Publish isolated preview branch
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_ACTION: ${{ github.event.action }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$PR_ACTION" != "closed" ]]; then
+            test -s preview-payload/index.html
+            cp preview-payload/index.html "$RUNNER_TEMP/pr-index.html"
+          fi
+          rm -rf preview-payload
+          git fetch origin refs/heads/pr-previews:refs/remotes/origin/pr-previews 2>/dev/null || true
+          if git show-ref --verify --quiet refs/remotes/origin/pr-previews; then
+            git switch -C pr-previews refs/remotes/origin/pr-previews
+          else
+            git switch --orphan pr-previews
+            git rm -rf . >/dev/null 2>&1 || true
+            git clean -fdx >/dev/null 2>&1 || true
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          directory="pr-$PR_NUMBER"
+          if [[ "$PR_ACTION" == "closed" ]]; then
+            rm -rf -- "$directory"
+          else
+            mkdir -p -- "$directory"
+            cp "$RUNNER_TEMP/pr-index.html" "$directory/index.html"
+          fi
+          touch .nojekyll
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "preview: ${PR_ACTION} PR #${PR_NUMBER} (${HEAD_SHA:0:12})"
+            git push origin HEAD:refs/heads/pr-previews
+          fi
+      - name: Verify hosted preview
+        if: github.event.action != 'closed'
+        shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          url="https://raw.githack.com/${GITHUB_REPOSITORY}/pr-previews/pr-${PR_NUMBER}/index.html"
+          curl --fail --location --silent --show-error --retry 8 --retry-delay 4 --retry-all-errors --max-time 30 "$url" -o "$RUNNER_TEMP/site.html"
+          grep -Eiq '<html' "$RUNNER_TEMP/site.html"
+          echo "Preview: $url" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upsert preview link in pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_ACTION: ${{ github.event.action }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          marker="<!-- ghcode-pr-preview -->"
+          if [[ "$PR_ACTION" == "closed" ]]; then
+            body="$marker"$'\n'"Preview retired: PR #$PR_NUMBER has been closed."
+          else
+            url="https://raw.githack.com/${GITHUB_REPOSITORY}/pr-previews/pr-${PR_NUMBER}/index.html"
+            body="$marker"$'\n'"**PR preview (public, read-only):** [Open deployed GHCode]($url)"$'\n\n'"Revision: \`${HEAD_SHA:0:12}\` · Authentication is disabled on the shared preview host. The preview does not replace production."
+          fi
+          comment_id="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" --jq '.[] | select(.body | startswith("<!-- ghcode-pr-preview -->")) | .id' | head -n 1 || true)"
+          if [[ -n "$comment_id" ]]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment_id" -f body="$body" >/dev/null
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" -f body="$body" >/dev/null
+          fi
