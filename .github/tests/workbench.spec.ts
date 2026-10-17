@@ -263,7 +263,7 @@ test("GitHub sign-in covers start, pending, success, denial, expiry, and sign-ou
     return raw ? JSON.parse(raw).phase : "";
   })).toBe("success");
 
-  await page.getByRole("button", { name: "Close" }).click();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   await page.getByTitle("Sign out").click();
   await expect(page.getByTitle("Sign in with GitHub")).toBeVisible();
   expect(await page.evaluate(() => sessionStorage.getItem("workbench-github-token"))).toBeNull();
