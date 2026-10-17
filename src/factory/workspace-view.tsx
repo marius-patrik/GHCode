@@ -13,7 +13,6 @@ import {
 import { AnimatedIcon } from "@/components/animated-icon";
 import { useFactory } from "@/factory/context";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { createGithubIssue } from "@/github/client";
 import { useWorkbenchRuntime } from "@/workbench/runtime";
 import { useWorkspace } from "@/workspace/context";
@@ -363,6 +362,18 @@ export function FactoryWorkspaceView() {
 
   const documentActions = (
     <div className="factory-view-actions">
+      {!selectedFile && selectedSource?.contract && (
+        <label className="factory-filter">
+          <span className="sr-only">Filter contracts</span>
+          <input
+            aria-label="Filter contracts"
+            type="search"
+            value={search}
+            placeholder="Filter contracts"
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </label>
+      )}
       {selectedSource && (
         <Button variant="outline" size="sm" onClick={() => openEditor(canonicalEditPath(selectedSource.path))}>
           <FileCode2 size={13} /> Edit source
