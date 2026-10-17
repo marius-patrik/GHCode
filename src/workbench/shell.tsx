@@ -62,7 +62,7 @@ function visibleSizes(
   let primary = visibility.primary ? sizes.primary : 0;
   let secondary = visibility.secondary ? sizes.secondary : 0;
   const verticalHandles = (visibility.primary ? RESIZER_SIZE : 0) + (visibility.secondary ? RESIZER_SIZE : 0);
-  const sideBudget = Math.max(0, viewport.width - MAIN_MIN_WIDTH - verticalHandles);
+  const sideBudget = Math.max(0, viewport.width - 42 - MAIN_MIN_WIDTH - verticalHandles);
   if (primary + secondary > sideBudget && primary + secondary > 0) {
     const scale = sideBudget / (primary + secondary);
     primary *= scale;
@@ -410,7 +410,7 @@ export function WorkbenchShell() {
       createWorkbenchTab("search", { id: "search", pinned: true }),
       createWorkbenchTab("source-control", { id: "source-control", pinned: true }),
     ],
-    main: [createWorkbenchTab("factory", { id: "workspace-perspective", pinned: true })],
+    main: [],
     secondary: [],
     panel: [
       createWorkbenchTab("problems", { id: "problems", pinned: true }),
