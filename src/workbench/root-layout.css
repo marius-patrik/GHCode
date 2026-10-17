@@ -180,9 +180,6 @@
   min-height: 0;
 }
 
-.workbench-dockview-host-empty {
-  display: none;
-}
 
 .factory-activity-rail {
   grid-column: 1;
@@ -268,9 +265,6 @@
 .workbench-surface-main {
   min-width: 0;
   min-height: 0;
-}
-.workbench-dockview-host-empty {
-  display: none !important;
 }
 :root {
   --layer-surface: 0;
