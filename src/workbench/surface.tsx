@@ -330,6 +330,9 @@ export function WorkbenchSurfaceView({
                   title: tab.title,
                   params: tab,
                   renderer: "always",
+                  ...(api.activePanel ? {
+                    position: { referencePanel: api.activePanel.id, direction: "within" },
+                  } : {}),
                 });
               }
             }
