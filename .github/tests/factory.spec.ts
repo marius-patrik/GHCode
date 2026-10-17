@@ -6,7 +6,7 @@ import {
   parseContract,
   validateContract,
   type Contract,
-} from "../src/factory/contracts";
+} from "../../src/factory/contracts";
 
 const target: Contract = {
   kind: "prd",
@@ -61,6 +61,6 @@ test("global factory perspectives share the GHCode workbench", async ({ page }) 
     await expect(control).toHaveAttribute("aria-pressed", "true");
   }
   await expect(page.locator('[data-workbench-surface="main"] .dv-tab').filter({ hasText: "Software Factory" })).toHaveCount(0);
-  await page.locator(".empty-workbench").getByRole("button", { name: "Open GitHub Repository" }).click();
+  await page.getByRole("button", { name: /Open repository/i }).first().click();
   await expect(page.getByRole("dialog", { name: "Open GitHub repository" })).toBeVisible();
 });
