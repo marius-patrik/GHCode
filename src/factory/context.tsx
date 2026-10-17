@@ -9,6 +9,8 @@ export type FactoryConcern = "overview" | "specification" | "delta" | "repositor
 export type FactoryDocument = { path: string; raw: string; contract: Contract | null; error: string | null };
 type FactoryState = {
   concern: FactoryConcern;
+  selectedPath: string | null;
+  selectPath: (path: string | null) => void;
   setConcern: (concern: FactoryConcern) => void;
   desired: FactoryDocument | null;
   reported: FactoryDocument | null;
@@ -58,6 +60,7 @@ function fileInventory(
 export function FactoryProvider({ children }: { children: ReactNode }) {
   const workspace = useWorkspace();
   const [concern, setConcern] = useState<FactoryConcern>(persistedConcern);
+  const [selectedPath, selectPath] = useState<string | null>(null);
   const [desired, setDesired] = useState<FactoryDocument | null>(null);
   const [reported, setReported] = useState<FactoryDocument | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +74,8 @@ export function FactoryProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try { localStorage.setItem("ghcode-concern", concern); } catch { /* Optional persistence. */ }
   }, [concern]);
+
+  useEffect(() => { selectPath(null); }, [project?.id]);
 
   useEffect(() => {
     let active = true;
@@ -114,9 +119,9 @@ export function FactoryProvider({ children }: { children: ReactNode }) {
   const validation = useMemo(() => desired?.contract ? validateContract(desired.contract) : [], [desired]);
 
   const value = useMemo<FactoryState>(() => ({
-    concern, setConcern, desired, reported, desiredFiles, actualFiles, changes, drafts,
+    concern, setConcern, selectedPath, selectPath, desired, reported, desiredFiles, actualFiles, changes, drafts,
     validation, loading, error, refresh,
-  }), [concern, desired, reported, desiredFiles, actualFiles, changes, drafts, validation, loading, error]);
+  }), [concern, selectedPath, desired, reported, desiredFiles, actualFiles, changes, drafts, validation, loading, error]);
 
   return <FactoryContext.Provider value={value}>{children}</FactoryContext.Provider>;
 }
