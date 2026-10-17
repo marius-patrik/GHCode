@@ -117,7 +117,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       pages: write
       deployments: write
       id-token: write
@@ -186,9 +186,9 @@ jobs:
           [ -n "$id" ] || { echo "::error::No matching PR deployment"; exit 1; }
           gh api --method POST "repos/$GITHUB_REPOSITORY/deployments/$id/statuses"             -f state=success -f environment_url="$url"             -f description="Verified GitHub Pages PR preview"
           echo "Preview: $url" >> "$GITHUB_STEP_SUMMARY"
-          marker="<!-- ghcode-pages-preview -->"
+          marker="<!-- ghcode-pr-preview -->"
           body="$marker"$'\n'"**GitHub Pages PR preview:** [Open PR #$PR]($url)"$'\n\n'"Built from \`${recorded:0:12}\`. This is the actual GitHub Pages deployment, not a third-party mirror."
-          id="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments?per_page=100"             --jq '.[] | select(.body | startswith("<!-- ghcode-pages-preview -->")) | .id' | head -n 1 || true)"
+          id="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments?per_page=100"             --jq '.[] | select(.body | startswith("<!-- ghcode-pr-preview -->")) | .id' | head -n 1 || true)"
           if [ -n "$id" ]; then
             gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$body" >/dev/null
           else
