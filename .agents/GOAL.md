@@ -4,7 +4,7 @@ Deliver GHCode as one cohesive GitHub-native workbench for project definition, r
 
 ## Success criteria
 
-- Overview, Specification, Delta and Repository are global workspace perspectives, never a separate tab or application.
+- Overview, Specification, Delta and Repository are first-class native Dockview tabs in a permanently visible main tab strip, never a separate factory application or overlay.
 - One project selector, one shared source tree, one editor system, one status bar and one coherent neutral palette.
 - Sidebar collapse/resize does not remove the central workspace; overlays, menus and dialogs have consistent stacking.
 - The selected repo provides its real .agents canonical specifications and architecture; there is no hardcoded demo project.
