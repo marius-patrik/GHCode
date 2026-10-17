@@ -470,6 +470,7 @@ export function WorkbenchShell() {
       settings,
       activeTab,
       focusOmnibar,
+      showPerspective: () => setShowPerspective(true),
       setTheme,
       openTab,
       moveTab,
