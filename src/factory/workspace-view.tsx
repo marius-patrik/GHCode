@@ -83,12 +83,17 @@ export function FactoryWorkspaceView() {
     .filter((record) => JSON.stringify(record).toLowerCase().includes(search.trim().toLowerCase()));
   const record = filteredRecords.find((item) => item.id === selectedRecord) ?? filteredRecords[0];
 
+  const canonicalEditPath = (path: string) => {
+    if (path === ".agents/PRD.md") return observedFiles.find((f) => f.path.startsWith(".agents/requests/") && f.path.endsWith(".md"))?.path ?? path;
+    if (path === ".agents/ARCHITECTURE.md") return observedFiles.find((f) => f.path.startsWith(".agents/decisions/") && f.path.endsWith(".md"))?.path ?? path;
+    return path;
+  };
   const openEditor = (path: string) => runtime.openTab("editor", "main", {
     path,
     language: languageForPath(path),
     renderer: "editor",
   });
-  const displayTitle = currentRepo?.repository.fullName ?? "Select a repository";
+
 
   const fileDetails = selectedFile
     ? {
@@ -189,7 +194,7 @@ export function FactoryWorkspaceView() {
           ))}
         </div>
         {record ? <pre className="factory-code">{JSON.stringify(record, null, 2)}</pre> : <p className="factory-empty">No contracts in this registry.</p>}
-        {selectedDoc && <Button variant="outline" size="sm" onClick={() => openEditor(selectedDoc.path)}>Edit {selectedDoc.path} in Monaco <ExternalLink size={13}/></Button>}
+        {selectedDoc && <Button variant="outline" size="sm" onClick={() => openEditor(canonicalEditPath(selectedDoc.path))}>Edit {selectedDoc.path} in Monaco <ExternalLink size={13}/></Button>}
       </section>
     </div>
   );
@@ -200,7 +205,7 @@ export function FactoryWorkspaceView() {
       {selectedDoc ? <>
         {selectedDoc.error && <div className="factory-error"><CircleAlert size={14}/>{selectedDoc.error}</div>}
         <div className="factory-actions">
-          <Button size="sm" variant="outline" onClick={() => openEditor(selectedDoc.path)}>Open in Monaco</Button>
+          <Button size="sm" variant="outline" onClick={() => openEditor(canonicalEditPath(selectedDoc.path))}>Open in Monaco</Button>
           <Button size="sm" variant="outline" onClick={() => downloadMarkdown(selectedDoc.path.split("/").at(-1) ?? "specification.md", selectedDoc.raw)}>
             <Download size={14}/> Export Markdown
           </Button>
