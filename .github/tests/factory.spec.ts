@@ -1,3 +1,4 @@
+import { canonicalSourceDirectory, isGeneratedDocument } from "../../src/workspace/governance";
 import { expect, test } from "@playwright/test";
 import {
   assembleIssueDrafts,
@@ -115,4 +116,19 @@ test("mobile layout keeps navigation and the main content within viewport", asyn
   await expect(page.getByRole("region", { name: "Project workspace" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   expect((await page.locator(".root-main").boundingBox())?.width).toBeGreaterThan(250);
+});
+
+test("only generated agent projections are read-only and each has an authored source", () => {
+  for (const [path, dir] of [
+    [".agents/README.md", ".agents/notes/"],
+    [".agents/PRD.md", ".agents/requests/"],
+    [".agents/ARCHITECTURE.md", ".agents/decisions/"],
+    [".agents/AGENTS.md", ".agents/rules/"],
+  ]) {
+    expect(isGeneratedDocument(path)).toBe(true);
+    expect(canonicalSourceDirectory(path)).toBe(dir);
+  }
+  expect(isGeneratedDocument(".agents/requests/0001-product.md")).toBe(false);
+  expect(isGeneratedDocument("PRD.md")).toBe(false);
+  expect(canonicalSourceDirectory("src/workbench/shell.tsx")).toBeNull();
 });
