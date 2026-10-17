@@ -34,11 +34,11 @@ export function EmptyWorkbench() {
   };
 
   if (workspace.workspace) return (
-    <div className="factory-home" aria-label="Workspace perspective">
+    <section className="factory-home" aria-label="Workspace perspective">
       <FactoryTab tab={homeTab} updateState={(patch) => {
         if (typeof patch.pane === "string") setFactoryPane(patch.pane);
       }} />
-    </div>
+    </section>
   );
 
   const tabs = workspace.workspace
