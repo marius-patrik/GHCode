@@ -20,9 +20,9 @@
     },
     {
       "id": "CMP-002",
-      "title": "Factory workbench tab",
+      "title": "Workspace perspective inspector",
       "path": "src/tabs/factory-tab.tsx",
-      "responsibility": "Native GHCode tab projecting selected workspace as target, observed and delta."
+      "responsibility": "Renders workspace information from global factory provider; file tree belongs to GHCode Explorer."
     },
     {
       "id": "CMP-003",
@@ -35,6 +35,12 @@
       "title": "Workbench registry",
       "path": "src/workbench/registry.tsx",
       "responsibility": "Dockview tab registration and reusable workbench shell."
+    },
+    {
+      "id": "CMP-005",
+      "title": "Global factory perspective model",
+      "path": "src/factory/context.tsx",
+      "responsibility": "Sources desired, reported, delta, selected path, and active concern from existing GitHub workspace."
     }
   ],
   "runtimes": [
@@ -66,23 +72,36 @@
     {
       "path": "src/factory/contracts.ts",
       "role": "Pure contract parser and evidence comparison."
+    },
+    {
+      "path": "src/tabs/explorer-tab.tsx",
+      "role": "One actual/desired/delta file tree controlled by global concern."
+    },
+    {
+      "path": "src/workbench/shell.tsx",
+      "role": "Native workbench chrome with global activity rail for Overview/Specification/Delta/Repository."
+    },
+    {
+      "path": "rsbuild.config.ts",
+      "role": "Dual-mode production/site build and standalone inlined HTML preview."
     }
   ],
   "confidence": {
     "tree": "GitHub revision manifest",
-    "contracts": "Declared wiring and reviewed source; not behaviorally verified until CI/browser tests"
+    "contracts": "Declared wiring and reviewed source; not behaviorally verified until CI/browser tests",
+    "browser": "Pending CI compilation and acceptance evidence"
   }
 }
 ---
 
 # GHCode Architecture
 
-GHCode is the host IDE/workbench. The Software Factory is registered as a native Dockview tab, using the existing global GitHub repository workspace. No second project selector, Dockview root, authentication system or editor implementation is introduced.
+GHCode has one `WorkspaceProvider` and one Dockview workbench. `FactoryProvider` consumes that workspace, loads PRD and ARCHITECTURE Markdown, derives paths and discrepancies, and exposes a global concern. The shell's activity rail chooses the concern, the existing Explorer displays the corresponding file projection, and the normal Monaco, GitHub and Dockview tabs continue to work. The main workspace inspector is one view of the same model, not a second application or project owner.
 
-## Evidence boundaries
+## Source authority
 
-The PRD is the target state. This file reports selected implementation contracts. Source presence, document statements and behavioral verification are distinct evidence levels. An absent statement in this document does not imply missing code.
+GitHub revision tree proves path presence. PRD provides the desired state. ARCHITECTURE records reported system contracts. Tests and source inspection determine actual behavioral compliance. Lack of a claim in ARCHITECTURE is not evidence that code is missing.
 
-## Browser distribution
+## Build
 
-GHCode uses RSBuild with a deployment from GitHub Actions on main. Changes on the isolated branch remain separate from the production release path.
+The regular RSBuild output is used for production GitHub Pages. A separate `build:standalone` inlines HTML scripts/styles/assets for a reviewable single HTML document from the same source code. The draft PR workflow publishes the standalone artifact only after checks.
