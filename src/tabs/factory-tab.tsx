@@ -128,6 +128,14 @@ export function FactoryTab({
 
   const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
+    setSelectedFile("");
+    setSelectedRecord("");
+    setSearch("");
+    setPublished({});
+    setEditedIssueBodies({});
+    setDispatchError("");
+  }, [currentRepo?.id]);
+  useEffect(() => {
     let active = true;
     setDesired(null);
     setReported(null);
