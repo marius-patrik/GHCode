@@ -1,136 +1,196 @@
-name: PR Preview
+name: Preview Pages
 on:
   pull_request:
-    types: [opened, reopened, synchronize, closed]
-  workflow_dispatch:
-
+    types: [opened, synchronize, reopened, closed]
 permissions:
   contents: read
 
 jobs:
   build:
-    name: Validate and build PR preview
-    if: github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR head
-        uses: actions/checkout@v4
+      - name: Checkout selected PR revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - uses: oven-sh/setup-bun@v2
-      - name: Install
-        run: bun install
-      - name: Validate
+      - run: bun install
+      - name: Verify typecheck, lint and production build
         run: bun run check
-      - name: Build a self-contained, anonymous review site
+      - name: Verify Pages snapshot assembly behavior
         run: |
-          bun run build:standalone
+          python -m pip install -q pytest
+          python -m pytest -q .github/tests/test_pages_publication.py
+      - name: Build PR site with native relative assets
+        run: |
+          bun run build
           test -s dist/index.html
-          if grep -Eiq '<script[^>]+src=|<link[^>]+rel="stylesheet"' dist/index.html; then
-            echo "::error::Preview HTML contains external JavaScript or CSS assets."
-            exit 1
-          fi
       - uses: actions/upload-artifact@v4
         with:
-          name: pr-preview-source
-          path: dist/index.html
+          name: pr-pages-build
+          path: dist
           if-no-files-found: error
-          retention-days: 7
 
-  publish:
-    name: Publish link for this PR
+  stage:
+    name: Stage independent PR build
     needs: build
-    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && (github.event.action == 'closed' || needs.build.result == 'success')
+    if: always() && github.event.pull_request.head.repo.full_name == github.repository && (github.event.action == 'closed' || needs.build.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      issues: write
-      pull-requests: write
       deployments: write
-    environment:
-      name: pr-preview
-      url: https://raw.githack.com/${{ github.repository }}/pr-previews/pr-${{ github.event.pull_request.number }}/index.html
     concurrency:
-      group: ghcode-pr-preview-publisher
+      group: ghcode-pages-staging
       cancel-in-progress: false
     steps:
-      - name: Checkout repository for publishing
-        uses: actions/checkout@v4
+      - name: Checkout reviewed workflow
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: main
-      - name: Retrieve validated preview
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Download independently built PR site
         if: github.event.action != 'closed'
         uses: actions/download-artifact@v4
         with:
-          name: pr-preview-source
-          path: preview-payload
-      - name: Publish isolated preview branch
+          name: pr-pages-build
+          path: pr-site
+      - name: Stage only this PR and register its deployment
         env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_ACTION: ${{ github.event.action }}
-        shell: bash
         run: |
           set -euo pipefail
-          if [[ "$PR_ACTION" != "closed" ]]; then
-            test -s preview-payload/index.html
-            cp preview-payload/index.html "$RUNNER_TEMP/pr-index.html"
-          fi
-          rm -rf preview-payload
-          git fetch origin refs/heads/pr-previews:refs/remotes/origin/pr-previews 2>/dev/null || true
-          if git show-ref --verify --quiet refs/remotes/origin/pr-previews; then
-            git switch -C pr-previews refs/remotes/origin/pr-previews
+          gh auth setup-git
+          stage="$RUNNER_TEMP/ghcode-pages-staging"
+          mkdir -p "$stage"
+          cd "$stage"
+          git init
+          git remote add origin "https://github.com/$GITHUB_REPOSITORY.git"
+          if git ls-remote --exit-code origin refs/heads/gh-pages >/dev/null 2>&1; then
+            git fetch --depth 1 origin gh-pages
+            git switch -C gh-pages FETCH_HEAD
           else
-            git switch --orphan pr-previews
-            git rm -rf . >/dev/null 2>&1 || true
-            git clean -fdx >/dev/null 2>&1 || true
+            git switch --orphan gh-pages
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          directory="pr-$PR_NUMBER"
-          if [[ "$PR_ACTION" == "closed" ]]; then
-            rm -rf -- "$directory"
+          # Initialize production from the exact main release, never from PR source.
+          if [ ! -s index.html ]; then
+            [ "$PR_ACTION" != "closed" ] || exit 0
+            mkdir -p "$RUNNER_TEMP/main-snapshot"
+            release_sha="$(gh release view --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq .targetCommitish)"
+            main_sha="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+            [ "$release_sha" = "$main_sha" ] || { echo "::error::No current main release for Pages bootstrap"; exit 1; }
+            gh release download --repo "$GITHUB_REPOSITORY" --pattern ghcode-site.zip --dir "$RUNNER_TEMP/main-snapshot"
+            unzip -q "$RUNNER_TEMP/main-snapshot/ghcode-site.zip" -d "$stage"
+            test -s index.html
+          fi
+          if [ "$PR_ACTION" = "closed" ]; then
+            rm -rf -- "pr-$PR"
           else
-            mkdir -p -- "$directory"
-            cp "$RUNNER_TEMP/pr-index.html" "$directory/index.html"
+            test -s "$GITHUB_WORKSPACE/pr-site/index.html"
+            rm -rf -- "pr-$PR"
+            mkdir -p -- "pr-$PR"
+            cp -a "$GITHUB_WORKSPACE/pr-site/." "pr-$PR/"
+            printf '%s\n' "$HEAD_SHA" > "pr-$PR/.preview-head"
           fi
           touch .nojekyll
           git add -A
           if ! git diff --cached --quiet; then
-            git commit -m "preview: ${PR_ACTION} PR #${PR_NUMBER} (${HEAD_SHA:0:12})"
-            git push origin HEAD:refs/heads/pr-previews
+            git commit -m "pages: stage PR $PR ($PR_ACTION)"
+            git push origin HEAD:gh-pages
           fi
-      - name: Verify hosted preview
-        if: github.event.action != 'closed'
-        shell: bash
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          set -euo pipefail
-          url="https://raw.githack.com/${GITHUB_REPOSITORY}/pr-previews/pr-${PR_NUMBER}/index.html"
-          curl --fail --location --silent --show-error --retry 8 --retry-delay 4 --retry-all-errors --max-time 30 "$url" -o "$RUNNER_TEMP/site.html"
-          grep -Eiq '<html' "$RUNNER_TEMP/site.html"
-          echo "Preview: $url" >> "$GITHUB_STEP_SUMMARY"
-      - name: Upsert preview link in pull request
+          if [ "$PR_ACTION" != "closed" ]; then
+            payload="$(jq -n --arg sha "$HEAD_SHA" --arg env "pr-$PR" '{ref:$sha,environment:$env,auto_merge:false,transient_environment:true,required_contexts:[],description:"GitHub Pages PR preview"})"
+            id="$(gh api "repos/$GITHUB_REPOSITORY/deployments" --method POST --input <(printf '%s' "$payload") --jq .id)"
+            page_url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/pr-$PR/"
+            gh api "repos/$GITHUB_REPOSITORY/deployments/$id/statuses"               -f state=in_progress -f environment_url="$page_url"               -f description="Preview staged; Pages publishing is pending"
+          fi
+
+  publish:
+    name: Publish complete GitHub Pages site
+    needs: stage
+    if: always() && needs.stage.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      pages: write
+      deployments: write
+      id-token: write
+      issues: write
+    concurrency:
+      group: ghcode-pages-actions
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Checkout PR source for tested assembly script
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Assemble all independently staged snapshots
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_ACTION: ${{ github.event.action }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        shell: bash
         run: |
           set -euo pipefail
-          marker="<!-- ghcode-pr-preview -->"
-          if [[ "$PR_ACTION" == "closed" ]]; then
-            body="$marker"$'\n'"Preview retired: PR #$PR_NUMBER has been closed."
-          else
-            url="https://raw.githack.com/${GITHUB_REPOSITORY}/pr-previews/pr-${PR_NUMBER}/index.html"
-            body="$marker"$'\n'"**PR preview (public, read-only):** [Open deployed GHCode]($url)"$'\n\n'"Revision: \`${HEAD_SHA:0:12}\` · Authentication is disabled on the shared preview host. The preview does not replace production."
+          mkdir -p "$RUNNER_TEMP/pages-staging"
+          git init -q "$RUNNER_TEMP/staging-repo"
+          git -C "$RUNNER_TEMP/staging-repo" remote add origin "https://github.com/$GITHUB_REPOSITORY.git"
+          git -C "$RUNNER_TEMP/staging-repo" fetch --depth 1 origin gh-pages
+          git -C "$RUNNER_TEMP/staging-repo" archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/pages-staging"
+          open="$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" --jq '.[].number')"
+          mapfile -t prs < <(printf '%s\n' "$open" | sed '/^$/d')
+          python .github/scripts/assemble_pages.py --staging "$RUNNER_TEMP/pages-staging" --site site --open-prs "${prs[@]}"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Publish GHCode and PR previews together
+        id: deploy
+        uses: actions/deploy-pages@v4
+      - name: Verify PR deployment and publish verified URL
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          PR_ACTION: ${{ github.event.action }}
+          PAGE_URL: ${{ steps.deploy.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          if [ "$PR_ACTION" = "closed" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/deployments?environment=pr-$PR&per_page=100" --jq '.[].id' |
+              while read -r id; do
+                gh api --method POST "repos/$GITHUB_REPOSITORY/deployments/$id/statuses"                   -f state=inactive -f description="PR closed; preview removed"
+              done
+            exit 0
           fi
-          comment_id="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" --jq '.[] | select(.body | startswith("<!-- ghcode-pr-preview -->")) | .id' | head -n 1 || true)"
-          if [[ -n "$comment_id" ]]; then
-            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment_id" -f body="$body" >/dev/null || echo "::warning::Cannot update PR comment; deployment environment exposes the preview URL."
+          [ -s "site/pr-$PR/index.html" ] || { echo "::error::PR snapshot absent from published artifact"; exit 1; }
+          recorded="$(cat "site/pr-$PR/.preview-head")"
+          latest="$(gh pr view "$PR" --json headRefOid --jq .headRefOid)"
+          [ "$recorded" = "$latest" ] || { echo "::notice::Newer PR head is being built"; exit 0; }
+          url="${PAGE_URL%/}/pr-$PR/"
+          for attempt in {1..10}; do
+            status="$(curl -sSL -o "$RUNNER_TEMP/public-index" -w '%{http_code}' --max-time 25 "$url" || true)"
+            [ "$status" = 200 ] && grep -qi '<html' "$RUNNER_TEMP/public-index" && break
+            sleep 8
+          done
+          [ "$status" = 200 ] && grep -qi '<html' "$RUNNER_TEMP/public-index" || {
+            echo "::error::GitHub Pages has not served the new PR preview"; exit 1;
+          }
+          id="$(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=pr-$PR&per_page=100"             --jq ".[] | select(.sha == \"$recorded\") | .id" | head -n 1)"
+          [ -n "$id" ] || { echo "::error::No matching PR deployment"; exit 1; }
+          gh api --method POST "repos/$GITHUB_REPOSITORY/deployments/$id/statuses"             -f state=success -f environment_url="$url"             -f description="Verified GitHub Pages PR preview"
+          echo "Preview: $url" >> "$GITHUB_STEP_SUMMARY"
+          marker="<!-- ghcode-pages-preview -->"
+          body="$marker"$'\n'"**GitHub Pages PR preview:** [Open PR #$PR]($url)"$'\n\n'"Built from \`${recorded:0:12}\`. This is the actual GitHub Pages deployment, not a third-party mirror."
+          id="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments?per_page=100"             --jq '.[] | select(.body | startswith("<!-- ghcode-pages-preview -->")) | .id' | head -n 1 || true)"
+          if [ -n "$id" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$body" >/dev/null
           else
-            gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" -f body="$body" >/dev/null || echo "::warning::Cannot post PR comment; deployment environment exposes the preview URL."
+            gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="$body" >/dev/null
           fi
