@@ -570,7 +570,7 @@ export function WorkbenchShell() {
               title={workspace.user ? "Sign out" : "Sign in with GitHub"}
             >
               {workspace.user ? <img src={workspace.user.avatar_url} alt="" /> : <UserRound size={14} />}
-              <span>{isPublicReviewPreview() ? "Public preview · read only" : workspace.user?.login || "Sign in"}</span>
+              <span>{isPublicReviewPreview() ? "PR preview · read only" : workspace.user?.login || "Sign in"}</span>
             </button>
           </div>
         </header>
