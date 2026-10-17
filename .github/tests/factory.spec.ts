@@ -69,3 +69,50 @@ test("global factory perspectives share the GHCode workbench", async ({ page }) 
   await page.getByRole("button", { name: /Open repository/i }).first().click();
   await expect(page.getByRole("dialog", { name: "Open GitHub repository" })).toBeVisible();
 });
+
+test("hiding and restoring sidebars never removes the central workspace", async ({ page }) => {
+  await page.goto("/");
+  const main = page.locator(".root-main");
+  const canvas = page.getByRole("region", { name: "Project workspace" });
+  await expect(canvas).toBeVisible();
+  const initial = await main.boundingBox();
+  expect(initial?.width).toBeGreaterThan(250);
+  for (const name of ["Overview", "Specification", "Delta", "Repository"]) {
+    await page.getByRole("navigation", { name: "Workspace perspectives" }).getByRole("button", { name }).click();
+    await expect(canvas).toBeVisible();
+  }
+  await page.getByTitle("Toggle Primary Sidebar (Cmd/Ctrl+B)").click();
+  await expect(canvas).toBeVisible();
+  expect((await main.boundingBox())?.width).toBeGreaterThan(initial?.width ?? 0);
+  await page.getByTitle("Toggle Secondary Sidebar (Cmd+Option/Ctrl+Alt+B)").click();
+  await expect(canvas).toBeVisible();
+  await page.getByTitle("Toggle Primary Sidebar (Cmd/Ctrl+B)").click();
+  await expect(canvas).toBeVisible();
+  await expect(page.locator(".workbench-statusbar")).toHaveCount(1);
+  await expect(page.locator(".factory-footer, .factory-header")).toHaveCount(0);
+});
+
+test("activity rail returns to the native perspective without closing editor tabs", async ({ page }) => {
+  await page.goto("/");
+  const field = page.getByLabel("Workbench omnibar");
+  await field.fill(">Open Browser");
+  await field.press("Enter");
+  await expect(page.locator('[data-workbench-surface="main"] .dv-tab').filter({ hasText: "Browser" })).toBeVisible();
+  const canvas = page.getByRole("region", { name: "Project workspace" });
+  await expect(canvas).toBeHidden();
+  await page.getByRole("navigation", { name: "Workspace perspectives" }).getByRole("button", { name: "Specification" }).click();
+  await expect(canvas).toBeVisible();
+  await page.getByRole("navigation", { name: "Workspace perspectives" }).getByRole("button", { name: "Open editors" }).click();
+  await expect(canvas).toBeHidden();
+  await expect(page.locator('[data-workbench-surface="main"] .dv-tab').filter({ hasText: "Browser" })).toBeVisible();
+});
+
+test("mobile layout keeps navigation and the main content within viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.getByRole("region", { name: "Project workspace" })).toBeVisible();
+  await page.getByTitle("Toggle Primary Sidebar (Cmd/Ctrl+B)").click();
+  await expect(page.getByRole("region", { name: "Project workspace" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  expect((await page.locator(".root-main").boundingBox())?.width).toBeGreaterThan(250);
+});
