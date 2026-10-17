@@ -292,8 +292,19 @@ export function EditorTab({
       />
       {generated && (
         <div className="resource-generated-notice" role="note">
-          <span>Generated document · edit its authored records in .agents/ instead of modifying this projection.</span>
-          <button type="button" onClick={() => { factory.setConcern(path === ".agents/ARCHITECTURE.md" ? "repository" : "specification"); runtime.showPerspective(); }}>
+          <span>
+            Generated document · edit its authored records in .agents/ instead of modifying this
+            projection.
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              factory.setConcern(
+                path === ".agents/ARCHITECTURE.md" ? "repository" : "specification",
+              );
+              runtime.showPerspective();
+            }}
+          >
             Open canonical sources
           </button>
         </div>

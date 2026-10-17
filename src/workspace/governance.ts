@@ -12,10 +12,15 @@ export function isGeneratedDocument(path: string): boolean {
 
 export function canonicalSourceDirectory(path: string): string | null {
   switch (path.replace(/\\/g, "/").replace(/^\.\//, "")) {
-    case ".agents/README.md": return ".agents/notes/";
-    case ".agents/PRD.md": return ".agents/requests/";
-    case ".agents/ARCHITECTURE.md": return ".agents/decisions/";
-    case ".agents/AGENTS.md": return ".agents/rules/";
-    default: return null;
+    case ".agents/README.md":
+      return ".agents/notes/";
+    case ".agents/PRD.md":
+      return ".agents/requests/";
+    case ".agents/ARCHITECTURE.md":
+      return ".agents/decisions/";
+    case ".agents/AGENTS.md":
+      return ".agents/rules/";
+    default:
+      return null;
   }
 }
