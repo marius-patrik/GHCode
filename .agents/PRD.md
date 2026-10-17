@@ -25,8 +25,8 @@ Provide a reliable GitHub development environment in which desired product inten
   "requirements": [
     {
       "id": "REQ-001",
-      "title": "Unified workbench",
-      "behavior": "Overview, Specification, Delta and Repository are global views of one project; not standalone or nested Dockview tabs."
+      "title": "First-class Dockview perspectives",
+      "behavior": "Overview, Specification, Delta and Repository are native Dockview tabs in the main area with a permanent visible tab bar, alongside editors and all other workspace tools. They share one GitHub project and evidence model and never introduce a nested application or tab system."
     },
     {
       "id": "REQ-002",
@@ -145,7 +145,7 @@ Provide a reliable GitHub development environment in which desired product inten
     },
     {
       "id": "ACC-002",
-      "title": "Factory absent from native tab registry"
+      "title": "All four perspectives are native tabs in main Dockview, not a separate factory tab"
     },
     {
       "id": "ACC-003",
@@ -158,6 +158,10 @@ Provide a reliable GitHub development environment in which desired product inten
     {
       "id": "ACC-005",
       "title": "GitHub Pages previews verify HTTP and all entry JS/CSS assets"
+    },
+    {
+      "id": "ACC-006",
+      "title": "Main tab strip stays visible during sidebar collapse, editor focus, reload and layout migration"
     }
   ]
 }
@@ -165,7 +169,7 @@ Provide a reliable GitHub development environment in which desired product inten
 
 ### Workflow
 
-The user chooses one GitHub repository/ref. Specification reads the project-owned canonical PRD; Repository inspects the working tree; Delta derives verified discrepancies and prepares issue drafts; Overview summarizes. Documents remain editable via existing Monaco tabs. A global activity rail selects perspectives; it must not open another nested tab.
+The user chooses one GitHub repository/ref. Specification reads the project-owned canonical PRD; Repository inspects the working tree; Delta derives verified discrepancies and prepares issue drafts; Overview summarizes. Documents remain editable via existing Monaco tabs. The activity rail activates native Dockview perspective tabs in the same main tab strip as Monaco, Browser and other documents. Every perspective is a real tab, with no second canvas and no nested tab bar.
 
 ### Verification
 
