@@ -104,7 +104,7 @@ jobs:
             git push origin HEAD:gh-pages
           fi
           if [ "$PR_ACTION" != "closed" ]; then
-            payload="$(jq -n --arg sha "$HEAD_SHA" --arg env "pr-$PR" '{ref:$sha,environment:$env,auto_merge:false,transient_environment:true,required_contexts:[],description:"GitHub Pages PR preview"})"
+            payload="$(jq -n --arg sha "$HEAD_SHA" --arg env "pr-$PR" '{ref:$sha,environment:$env,auto_merge:false,transient_environment:true,required_contexts:[],description:"GitHub Pages PR preview"}')"
             id="$(gh api "repos/$GITHUB_REPOSITORY/deployments" --method POST --input <(printf '%s' "$payload") --jq .id)"
             page_url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/pr-$PR/"
             gh api "repos/$GITHUB_REPOSITORY/deployments/$id/statuses"               -f state=in_progress -f environment_url="$page_url"               -f description="Preview staged; Pages publishing is pending"
