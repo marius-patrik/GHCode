@@ -12,6 +12,7 @@ export type WorkbenchRuntime = {
   settings: WorkbenchSettings;
   activeTab: WorkbenchTab | null;
   focusOmnibar: (mode: "navigation" | "command", value?: string) => void;
+  showPerspective: () => void;
   setTheme: (theme: AppearanceMode) => void;
   openTab: (
     type: WorkbenchTabType,
