@@ -25,8 +25,8 @@ type FactoryState = {
 };
 
 const FactoryContext = createContext<FactoryState | null>(null);
-const DESIRED_PATHS = ["PRD.md", "docs/PRD.md", ".agents/PRD.md"];
-const REPORTED_PATHS = ["ARCHITECTURE.md", "docs/ARCHITECTURE.md", ".agents/ARCHITECTURE.md"];
+const DESIRED_PATHS = [".agents/PRD.md", "PRD.md", "docs/PRD.md"];
+const REPORTED_PATHS = [".agents/ARCHITECTURE.md", "ARCHITECTURE.md", "docs/ARCHITECTURE.md"];
 
 function persistedConcern(): FactoryConcern {
   try {
