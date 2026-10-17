@@ -126,7 +126,7 @@ jobs:
       group: ghcode-pages-actions
       cancel-in-progress: false
     environment:
-      name: github-pages
+      name: ghcode-pages-preview
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - name: Checkout PR source for tested assembly script
