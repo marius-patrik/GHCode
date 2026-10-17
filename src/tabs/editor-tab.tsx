@@ -5,6 +5,7 @@ import { registerCapabilityLanguages } from "@/capabilities/monaco";
 import type { AppearanceMode } from "@/settings";
 import { useWorkspace } from "@/workspace/context";
 import { useFactory } from "@/factory/context";
+import { useWorkbenchRuntime } from "@/workbench/runtime";
 import { isGeneratedDocument } from "@/workspace/governance";
 import { languageForPath } from "@/workspace/languages";
 import type { WorkbenchTab } from "@/workbench/model";
@@ -37,6 +38,7 @@ export function EditorTab({
 }) {
   const workspace = useWorkspace();
   const factory = useFactory();
+  const runtime = useWorkbenchRuntime();
   const path = typeof tab.state.path === "string" ? tab.state.path : "Untitled";
   const repositoryFile = path !== "Untitled" && Boolean(workspace.workspace);
   const generated = repositoryFile && isGeneratedDocument(path);
@@ -291,7 +293,7 @@ export function EditorTab({
       {generated && (
         <div className="resource-generated-notice" role="note">
           <span>Generated document · edit its authored records in .agents/ instead of modifying this projection.</span>
-          <button type="button" onClick={() => factory.setConcern(path === ".agents/ARCHITECTURE.md" ? "repository" : "specification")}>
+          <button type="button" onClick={() => { factory.setConcern(path === ".agents/ARCHITECTURE.md" ? "repository" : "specification"); runtime.showPerspective(); }}>
             Open canonical sources
           </button>
         </div>
