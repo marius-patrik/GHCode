@@ -1,10 +1,10 @@
 # Plan
 
 ## Cohesive UI
-- [x] Remove the independent Software Factory Dockview tab and use one shared workbench perspective.
+- [x] Replace the overlaid factory canvas with four native Dockview tabs in the permanent main tab strip; activity rail activates tabs instead of swapping canvases.
 - [x] Consolidate global status and remove duplicate header/footer for the central content.
 - [x] Repair explicit workbench grid placement, collapsed-sidebar visibility and popover layers.
-- [ ] Validate real deployed interaction with mobile and desktop browser testing.
+- [ ] Validate native tab bar, tab restoration, layout migration and collapsed sidebar on deployed mobile and desktop preview.
 - [ ] Resolve all reported UX defects before requesting review.
 
 ## Template governance
