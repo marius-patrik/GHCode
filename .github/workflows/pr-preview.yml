@@ -182,6 +182,37 @@ jobs:
           [ "$status" = 200 ] && grep -qi '<html' "$RUNNER_TEMP/public-index" || {
             echo "::error::GitHub Pages has not served the new PR preview"; exit 1;
           }
+          # Validate actual page entry assets, not merely an HTML 200 response.
+          mapfile -t entry_assets < <(python - "$RUNNER_TEMP/public-index" "$url" <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import urljoin
+          import sys
+
+          class Assets(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.assets = []
+
+              def handle_starttag(self, tag, attrs):
+                  values = dict(attrs)
+                  if tag == "script" and values.get("src"):
+                      self.assets.append(values["src"])
+                  if tag == "link" and values.get("rel") == "stylesheet" and values.get("href"):
+                      self.assets.append(values["href"])
+
+          html = Path(sys.argv[1]).read_text(encoding="utf-8")
+          parser = Assets()
+          parser.feed(html)
+          if not parser.assets:
+              raise SystemExit("No production JS/CSS entry assets present")
+          for entry in parser.assets:
+              print(urljoin(sys.argv[2], entry))
+          PY
+          )
+          for asset_url in "${entry_assets[@]}"; do
+            curl --fail --silent --show-error --location --retry 4 --retry-delay 3 --max-time 25 -o /dev/null "$asset_url"
+          done
           id="$(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=pr-$PR&per_page=100"             --jq ".[] | select(.sha == \"$recorded\") | .id" | head -n 1)"
           [ -n "$id" ] || { echo "::error::No matching PR deployment"; exit 1; }
           gh api --method POST "repos/$GITHUB_REPOSITORY/deployments/$id/statuses"             -f state=success -f environment_url="$url"             -f description="Verified GitHub Pages PR preview"
