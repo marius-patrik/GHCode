@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   BookOpen, CircleAlert, Download, ExternalLink,
@@ -68,13 +68,17 @@ export function FactoryTab({
   const changeConcern = factory.setConcern;
   const changePane = (value: Pane) => updateState({ pane: value });
 
+  const previousRepo = useRef<string | null>(null);
   useEffect(() => {
+    const id = currentRepo?.id ?? null;
+    if (previousRepo.current === id) return;
+    previousRepo.current = id;
     setSearch("");
     setSelectedRecord("");
     setPublished({});
     setEditedIssueBodies({});
     setDispatchError("");
-  }, [currentRepo?.id]);
+  }, [currentRepo]);
 
   const target = desired?.contract ?? null;
   const selectedDoc = concern === "repository" ? reported : desired;
