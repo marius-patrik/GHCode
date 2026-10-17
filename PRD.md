@@ -79,7 +79,7 @@
     {
       "id": "REQ-010",
       "title": "Safe preview identity",
-      "behavior": "A preview on a third-party shared origin cannot load, persist, request or transmit GitHub tokens."
+      "behavior": "A preview at a GitHub Pages PR-specific path must not load, persist, request or transmit GitHub authentication credentials."
     }
   ],
   "components": [
@@ -232,13 +232,13 @@
       "id": "FIL-012",
       "kind": "file",
       "path": ".github/workflows/pr-preview.yml",
-      "purpose": "Per-PR preview validation, isolated deployment, URL reporting and cleanup"
+      "purpose": "Per-PR GitHub Pages staging, complete Pages publishing, verified deployment status and cleanup"
     },
     {
       "id": "FIL-013",
       "kind": "file",
       "path": "src/github/auth.ts",
-      "purpose": "Authentication safety guard on preview host"
+      "purpose": "Authentication guard for GitHub Pages preview paths"
     }
   ]
 }
