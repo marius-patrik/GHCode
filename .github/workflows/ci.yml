@@ -27,18 +27,6 @@ jobs:
         run: bunx playwright install --with-deps chromium
       - name: Browser acceptance
         run: bun run acceptance
-      - name: Build standalone HTML for branch review
-        if: github.event_name == 'pull_request'
-        run: |
-          bun run build:standalone
-          test -s dist/index.html
-      - name: Upload standalone HTML preview
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ghcode-standalone-html
-          path: dist/index.html
-          if-no-files-found: error
 
   package:
     name: Package GHCode from validated main
