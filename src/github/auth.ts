@@ -1,6 +1,6 @@
-/** Public PR builds use a shared, third-party preview origin. Credentials are prohibited there. */
+/** Public PR builds use a shared, pull-request preview path. Credentials are prohibited there. */
 export function isPublicReviewPreview(): boolean {
-  return typeof window !== "undefined" && window.location.hostname === "raw.githack.com";
+  return typeof window !== "undefined" && window.location.hostname.endsWith(".github.io") && /\\/pr-\\d+(?:\\/|$)/.test(window.location.pathname);
 }
 
 const TOKEN_KEY = "workbench-github-token";
@@ -161,7 +161,7 @@ export function hasGithubAuthCallback() {
 }
 
 export async function beginGithubSignIn() {
-  if (isPublicReviewPreview()) throw new Error("Sign-in is disabled on shared-origin PR previews.");
+  if (isPublicReviewPreview()) throw new Error("Sign-in is disabled on untrusted PR preview pages.");
   const config = getGithubAuthConfiguration();
   if (!config.configured) throw new Error("GitHub sign-in is not configured for this deployment.");
 
