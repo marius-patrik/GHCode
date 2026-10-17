@@ -16,6 +16,11 @@ const target: Contract = {
   files: [{ id: "FIL-001", path: "src/app.tsx", kind: "file" }],
 };
 
+test("generated documents can be parsed from embedded canonical source records", () => {
+  const generated = '# Product requirements\n\n## Approved source\n\n' + '\`\`\`json\n' + JSON.stringify(target) + '\n\`\`\`';
+  expect(parseContract(generated).contract).toEqual(target);
+});
+
 test("frontmatter compiler round trips and validates stable contracts", () => {
   const markdown = compileContract(target, "# Narrative\n\nOnly the contract is machine-readable.");
   const parsed = parseContract(markdown);
