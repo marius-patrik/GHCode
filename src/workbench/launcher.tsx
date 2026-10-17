@@ -32,6 +32,7 @@ export const LAUNCHER_ENTRIES: LauncherEntry[] = [
   { group: "GitHub", label: "Projects", type: "projects" },
   { group: "GitHub", label: "Actions", type: "actions" },
   { group: "GitHub", label: "Releases", type: "releases" },
+  { group: "Tools", label: "Software Factory", type: "factory" },
   { group: "Tools", label: "Browser", type: "browser" },
   { group: "Tools", label: "Problems", type: "problems" },
   { group: "Tools", label: "Output", type: "output" },
