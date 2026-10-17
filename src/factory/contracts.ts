@@ -30,18 +30,24 @@ export function normalizePath(path: string): string {
 }
 
 export function parseContract(input: string): { contract: Contract; prose: string } {
-  const match = input.replace(/^\uFEFF/, "").match(/^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/);
-  if (!match) throw new Error("Expected a --- fenced JSON-compatible YAML frontmatter block.");
-  let contract: unknown;
-  try {
-    contract = JSON.parse(match[1]);
-  } catch {
-    throw new Error("Frontmatter must be JSON-compatible YAML 1.2 (JSON object inside --- fences).");
+  const source = input.replace(/^\uFEFF/, "");
+  // Standalone contracts and template-governed generated Markdown share one parser.
+  // Only approved source records create generated documents; this never synthesizes project data.
+  const frontmatter = source.match(/^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/);
+  const embedded = source.match(/\`\`\`json[ \t]*\r?\n([\s\S]*?)\r?\n\`\`\`/);
+  let candidate: unknown;
+  if (frontmatter) {
+    try { candidate = JSON.parse(frontmatter[1]); }
+    catch { /* A source-record status header is YAML; its first JSON contract is in a fenced block. */ }
   }
-  if (!contract || Array.isArray(contract) || typeof contract !== "object" || typeof (contract as Contract).kind !== "string") {
-    throw new Error("Frontmatter must contain an object with a string kind.");
+  if (!candidate && embedded) {
+    try { candidate = JSON.parse(embedded[1]); }
+    catch { throw new Error("The project-owned JSON contract block is malformed."); }
   }
-  return { contract: contract as Contract, prose: input.slice(match[0].length).trimStart() };
+  if (!candidate || Array.isArray(candidate) || typeof candidate !== "object" || typeof (candidate as Contract).kind !== "string") {
+    throw new Error("No valid JSON contract in project-owned Markdown.");
+  }
+  return { contract: candidate as Contract, prose: frontmatter && candidate && !embedded ? source.slice(frontmatter[0].length).trimStart() : source };
 }
 
 export function compileContract(contract: Contract, prose = ""): string {
