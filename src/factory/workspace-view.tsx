@@ -13,7 +13,12 @@ import {
 import { AnimatedIcon } from "@/components/animated-icon";
 import { useFactory } from "@/factory/context";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { createGithubIssue } from "@/github/client";
 import { useWorkbenchRuntime } from "@/workbench/runtime";
 import { useWorkspace } from "@/workspace/context";
@@ -339,11 +344,24 @@ export function FactoryWorkspaceView() {
 
   const selectedSource = concern === "repository" ? reported : desired;
 
-  const authoredSources = selectedSource?.path === ".agents/PRD.md"
-    ? observedFiles.filter((f) => f.type === "file" && f.path.startsWith(".agents/requests/") && f.path.endsWith(".md")).map((f) => f.path)
-    : selectedSource?.path === ".agents/ARCHITECTURE.md"
-      ? observedFiles.filter((f) => f.type === "file" && f.path.startsWith(".agents/decisions/") && f.path.endsWith(".md")).map((f) => f.path)
-      : [];
+  const authoredSources =
+    selectedSource?.path === ".agents/PRD.md"
+      ? observedFiles
+          .filter(
+            (f) =>
+              f.type === "file" && f.path.startsWith(".agents/requests/") && f.path.endsWith(".md"),
+          )
+          .map((f) => f.path)
+      : selectedSource?.path === ".agents/ARCHITECTURE.md"
+        ? observedFiles
+            .filter(
+              (f) =>
+                f.type === "file" &&
+                f.path.startsWith(".agents/decisions/") &&
+                f.path.endsWith(".md"),
+            )
+            .map((f) => f.path)
+        : [];
   const documentActions = (
     <div className="factory-view-actions">
       {!selectedFile && selectedSource?.contract && (
@@ -358,24 +376,28 @@ export function FactoryWorkspaceView() {
           />
         </label>
       )}
-      {selectedSource && (
-        selectedSource.path === ".agents/PRD.md" || selectedSource.path === ".agents/ARCHITECTURE.md"
-          ? <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={!authoredSources.length}>
-                  <FileCode2 size={13} /> Edit canonical source ({authoredSources.length})
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {authoredSources.map((path) => (
-                  <DropdownMenuItem key={path} onSelect={() => openEditor(path)}>{path}</DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          : <Button variant="outline" size="sm" onClick={() => openEditor(selectedSource.path)}>
-              <FileCode2 size={13} /> Edit source
-            </Button>
-      )}
+      {selectedSource &&
+        (selectedSource.path === ".agents/PRD.md" ||
+        selectedSource.path === ".agents/ARCHITECTURE.md" ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={!authoredSources.length}>
+                <FileCode2 size={13} /> Edit canonical source ({authoredSources.length})
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {authoredSources.map((path) => (
+                <DropdownMenuItem key={path} onSelect={() => openEditor(path)}>
+                  {path}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Button variant="outline" size="sm" onClick={() => openEditor(selectedSource.path)}>
+            <FileCode2 size={13} /> Edit source
+          </Button>
+        ))}
       {selectedFile && (
         <Button variant="ghost" size="sm" onClick={() => factory.selectPath(null)}>
           Clear file selection
