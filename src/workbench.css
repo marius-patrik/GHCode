@@ -2162,3 +2162,26 @@ a {
   font-size: 10px;
   font-weight: 700;
 }
+
+.resource-generated-notice {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--toolbar-border);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.resource-generated-notice button {
+  border: 1px solid var(--toolbar-border);
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 4px 9px;
+  cursor: pointer;
+}
