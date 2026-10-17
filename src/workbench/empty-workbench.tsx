@@ -1,4 +1,7 @@
+import { useState } from "react";
 import { useWorkspace } from "@/workspace/context";
+import { FactoryTab } from "@/tabs/factory-tab";
+import { createWorkbenchTab } from "./registry";
 import {
   LAUNCHER_ENTRIES,
   launcherEntryDisabled,
@@ -19,6 +22,8 @@ const ACTIVE_WORKSPACE_TABS = new Set([
 export function EmptyWorkbench() {
   const runtime = useWorkbenchRuntime();
   const workspace = useWorkspace();
+  const [factoryPane, setFactoryPane] = useState("files");
+  const homeTab = createWorkbenchTab("factory", { id: "factory-home", state: { pane: factoryPane } });
 
   const run = (label: string) => {
     const entry = LAUNCHER_ENTRIES.find((candidate) => candidate.label === label);
@@ -27,6 +32,14 @@ export function EmptyWorkbench() {
       window.alert(reason instanceof Error ? reason.message : String(reason));
     });
   };
+
+  if (workspace.workspace) return (
+    <div className="factory-home" aria-label="Workspace perspective">
+      <FactoryTab tab={homeTab} updateState={(patch) => {
+        if (typeof patch.pane === "string") setFactoryPane(patch.pane);
+      }} />
+    </div>
+  );
 
   const tabs = workspace.workspace
     ? LAUNCHER_ENTRIES.filter(
