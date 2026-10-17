@@ -4,7 +4,7 @@
   "schema_version": "1.0.0",
   "product": {
     "name": "GHCode Software Factory",
-    "purpose": "Define desired codebase contracts, inspect a GitHub workspace, derive evidence-qualified differences and prepare reviewed implementation issues.",
+    "purpose": "Define a complete desired codebase, inspect the actual selected GitHub project, show trustworthy differences and prepare dispatchable issues within the GHCode workbench.",
     "target": "The selected GitHub repository (including GHCode itself).",
     "boundary": "Specification, inspection and issue preparation; implementation is performed by external agents."
   },
@@ -63,8 +63,8 @@
     },
     {
       "id": "REQ-007",
-      "title": "Native workbench integration",
-      "behavior": "Use GHCode Dockview, Radix, Motion, shadcn components and Lucide icons; no second tab, auth, or project subsystem."
+      "title": "Unified GHCode workbench",
+      "behavior": "All factory concerns are global GHCode workspace perspectives. The existing primary Explorer, Monaco, Dockview layout, project/ref selector, issue client and source control are reused; no secondary tab container or repository state machine."
     },
     {
       "id": "REQ-008",
@@ -81,9 +81,9 @@
     },
     {
       "id": "CMP-002",
-      "title": "Factory workbench tab",
+      "title": "Workspace perspective inspector",
       "path": "src/tabs/factory-tab.tsx",
-      "responsibility": "Native GHCode tab projecting selected workspace as target, observed and delta."
+      "responsibility": "Main workbench inspector shares global concern and selection with the native Explorer; no independent project loading or file tree."
     },
     {
       "id": "CMP-003",
@@ -96,6 +96,12 @@
       "title": "Workbench registry",
       "path": "src/workbench/registry.tsx",
       "responsibility": "Dockview tab registration and reusable workbench shell."
+    },
+    {
+      "id": "CMP-005",
+      "title": "Global perspective state",
+      "path": "src/factory/context.tsx",
+      "responsibility": "Derive desired PRD, reported architecture and delta from the GHCode workspace; share current concern and selected path."
     }
   ],
   "interfaces": [
@@ -187,6 +193,30 @@
       "kind": "file",
       "path": "ARCHITECTURE.md",
       "purpose": "Reported implementation architecture"
+    },
+    {
+      "id": "FIL-008",
+      "kind": "file",
+      "path": "src/factory/context.tsx",
+      "purpose": "Global source-derived perspective model"
+    },
+    {
+      "id": "FIL-009",
+      "kind": "file",
+      "path": "src/tabs/explorer-tab.tsx",
+      "purpose": "Shared file tree of desired, actual and delta projections"
+    },
+    {
+      "id": "FIL-010",
+      "kind": "file",
+      "path": "src/workbench/shell.tsx",
+      "purpose": "Global navigation rail and Dockview workbench"
+    },
+    {
+      "id": "FIL-011",
+      "kind": "file",
+      "path": "rsbuild.config.ts",
+      "purpose": "Production and standalone HTML compilation"
     }
   ]
 }
@@ -194,12 +224,13 @@
 
 # GHCode Software Factory
 
-This project is maintained within GHCode rather than as a second application. Its contract is intentionally scoped to the Software Factory capability, not to every existing GHCode feature. The `files` registry declares important owned files, **not** a complete tree. The actual tree comes from the selected GitHub workspace.
+The factory is a first-class GHCode workbench capability. Repository, Specification, Delta and Overview are **global perspectives** selected through the existing activity rail. The same Explorer changes projection, existing editor tabs remain available, and the main workspace inspector reacts to project state. No parallel Dockview implementation or hardcoded project snapshot is maintained.
 
-## Iteration
+## Contract and evidence
 
-1. Edit `PRD.md` in the existing Monaco tab.
-2. Inspect the selected workspace revision and `ARCHITECTURE.md`.
-3. Review evidence-qualified Delta findings.
-4. Edit and dispatch GitHub issue drafts with explicit confirmation.
-5. After implementation, reconcile the project-owned architecture document.
+- Target contracts reside in `PRD.md`.
+- Reported architecture resides in `ARCHITECTURE.md`.
+- The selected repository ref, full Git tree and working overlays are read through GHCode's existing workspace provider.
+- Unreported requirements are not automatically classified as unimplemented.
+- Issue drafts remain reviewable and need explicit approval before publishing.
+- A standalone single-file HTML is built from the same source tree for review.
